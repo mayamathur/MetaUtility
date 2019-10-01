@@ -2,6 +2,7 @@
 
 library(testthat)
 library(metafor)
+library(purrr)
 
 
 d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
@@ -15,24 +16,6 @@ m = metafor::rma.uni(yi= d$yi, vi=d$vi, knha=TRUE,
 # pooled point estimate (RR scale)
 exp(m$b)
 
-# estimate the proportion of effects stronger than RR = 0.80
-# no bootstrapping will be needed
-prop_stronger( q = log(0.8),
-               M = as.numeric(m$b),
-               t2 = m$tau2,
-               se.M = as.numeric(m$vb),
-               se.t2 = m$se.tau2,
-               CI.level = 0.95,
-
-               estimate.method = "calibrated",
-               ci.method = "calibrated",
-
-               dat = d,
-               yi.name = "yi",
-               vi.name = "vi",
-               tail = "below",
-               R = 100,
-               bootstrap = "ifneeded")
 
 ######## test ########
 
@@ -61,7 +44,7 @@ expect_equal( my.ens,
 
 
 
-# Phat: lower tail
+# Phat, calibrated: lower tail
 Phat = prop_stronger( q = log(0.8),
                       M = as.numeric(m$b),
                       t2 = m$tau2,
@@ -80,7 +63,7 @@ Phat = prop_stronger( q = log(0.8),
 expect_equal( Phat$Est,
               mean(my.ens < log(.8)) )
 
-# Phat: upper tail
+# Phat, calibrated: upper tail
 Phat = prop_stronger( q = log(.8),
                       M = as.numeric(m$b),
                       t2 = m$tau2,
@@ -100,8 +83,69 @@ expect_equal( Phat$Est,
               mean(my.ens > log(.9)) )
 
 
+# Phat, sign test, upper tail
+q = log(.8)
+Phat = prop_stronger( q = q,
+
+                      estimate.method = "calibrated",
+                      ci.method = "calibrated",
+
+                      dat = d,
+                      yi.name = "yi",
+                      vi.name = "vi",
+                      tail = "below")
+
+# sanity check: get sign test p-value of the CI limits
+pct.vec = seq( 0, 1, 0.001 )
+
+pvals = pct.vec %>% map( function(x) phi( theta = d$yi,
+                                          theta.sd = sqrt(d$vi),
+                                          mu = q,
+                                          pct = x ) ) %>%
+  unlist # return a double-type vector instead of list
 
 
+plot(pct.vec, pvals)
 
 
+prop_stronger_sign(q = q,
+                   yi = d$yi,
+                   vi = d$vi,
+                   tail = "below",
+                   return.vectors = FALSE )
+
+# Phat values for this q that are rejected at the alpha = 0.05 level
+Phat.keep = pct.vec[pvals>0.05]
+min(Phat.keep)
+max(Phat.keep)
+
+pvals[ pct.vec == .92 ]
+
+phi(theta = d$yi,
+    theta.sd = sqrt(d$vi),
+    mu = q,
+    pct = .025)
+
+
+# should give warning about parametric inference
+# Phat, sign test, upper tail
+q = -.6
+prop_stronger( q = q,
+                      M = as.numeric(m$b),
+                      t2 = m$tau2,
+                      se.M = as.numeric(m$vb),
+                      se.t2 = m$se.tau2,
+                      CI.level = 0.95,
+
+                      estimate.method = "calibrated",
+                      #ci.method = "sign.test",
+
+                      dat = d,
+                      yi.name = "yi",
+                      vi.name = "vi",
+                      tail = "above")
+
+
+######## example code using package ######
+# example
 

@@ -7,13 +7,13 @@
     "folds" : "",
     "hash" : "0",
     "id" : "249FF94A",
-    "lastKnownWriteTime" : 1569949595,
-    "last_content_update" : 1569949595011,
+    "lastKnownWriteTime" : 1569959427,
+    "last_content_update" : 1569959427161,
     "path" : "~/Dropbox/Personal computer/Independent studies/MetaUtility R package/MetaUtility/tests/testthat.R",
     "project_path" : "tests/testthat.R",
     "properties" : {
-        "cursorPosition" : "103,0",
-        "scrollLine" : "68",
+        "cursorPosition" : "87,1",
+        "scrollLine" : "81",
         "tempName" : "Untitled1"
     },
     "read_only" : false,

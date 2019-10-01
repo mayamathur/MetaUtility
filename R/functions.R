@@ -331,6 +331,127 @@ calib_ests = function(yi,
 }
 
 
+################################ INTERNAL FNs FOR SIGN TEST METHODT ################################
+
+# ~~~ INTERNAL: DON'T EXPORT
+##########################################################################
+##########################################################################
+### theta: treatment effect estimates ###
+### (usually a vector of length K, K is the number of studies) ###
+### theta.sd: estimated standard error of theta ###
+### (usually a vector of same length as theta) ###
+### mu: the specified value in the null hypothesis. ###
+### pct: the percentile of interest ###
+### 0.5=median, ###
+### 0.25=25th percentile, ###
+### 0.75=75th percentile. ###
+### nperm: number of realizations in the conditional test ###
+
+##########################################################################
+### Output a 2-sided p-value. ###
+##########################################################################
+
+phi <- function(theta=theta,
+                theta.sd=theta.sd,
+                mu=mu0,
+                pct=0.5,
+                nperm=2000) {
+
+  K<-length(theta)
+
+  # "score" is equivalent to kth contribution of sum in
+  #  first eq. on page 4 (see my note in sidebar for equivalence)
+  score <- pnorm( (mu-theta)/theta.sd ) - 0.5
+  # OBSERVED test stat
+  stat<-sum(score)
+
+  # initialize what will be the test stat vector UNDER H0
+  # i.e., Tstar in paper
+  test.stat<-rep(0,nperm)
+
+  # draw Deltas for nperm iterations
+  # this is the H0 distribution
+  i<-1
+  while (i<=nperm) {
+    # here they use "ref1" and "ref2" (0/1) instead of Delta (1/-1)
+    #  for computational convenience
+    ref1 <- rbinom(K,1,pct)
+    ref2 <- 1-ref1
+    # this is the second eq. on page 4 of paper
+    test.stat[i] <- sum( (abs(score)) * ref1 - (abs(score))*ref2 )
+    i<-i+1
+  }
+
+  # compare test.stat (which is under H0) to observed one
+  p1 <- mean(as.numeric(test.stat<=stat))
+  p2 <- mean(as.numeric(test.stat>=stat))
+  p3 <- mean(as.numeric(test.stat==stat))
+  pval <- 2*min(p1,p2) - p3
+  return(pval)
+}
+
+
+# ~~ INTERNAL: DON'T EXPORT THIS ONE
+# this is my own fn
+# a simpler grid search across Phat values than their search across percentiles
+# since Phat is conveniently bounded
+# calculates p-value for different percentiles, fixing q, rather than for different q, fixing percentile
+
+prop_stronger_sign = function(q,
+                            yi,
+                            vi,
+                            CI.level = 0.95,
+                            tail = NA,
+                            R = 2000,
+                            return.vectors = FALSE ) {
+
+
+  # Phat values to try
+  pct.vec = seq( 0, 1, 0.001 )
+
+  pvals = pct.vec %>% map( function(x) phi( theta = yi,
+                                            theta.sd = sqrt(vi),
+                                            mu = q,
+                                            pct = x,
+                                            nperm = R ) ) %>%
+    unlist # return a double-type vector instead of list
+
+  # point estimate: the value of Phat.below with the largest p-value?
+  Phat.below.NP = pct.vec[ which.max( pvals ) ]
+
+  # get CI limits
+  alpha = 1 - CI.level
+  # in case the point estimate is already 1 or 0, avoid null objects
+  if ( Phat.below.NP == 1 ) CI.hi.NP = 1
+  # of the "candidate" Phat values for *upper* CI (i.e., those *above* the one with largest p-value),
+  #  which has p-value closest to 0.05?
+  else CI.hi.NP = pct.vec[ pct.vec > Phat.below.NP ][ which.min( abs( pvals[ pct.vec > Phat.below.NP ] - alpha ) ) ]
+
+  if ( Phat.below.NP == 0 ) CI.lo.NP = 0
+  else CI.lo.NP = pct.vec[ pct.vec < Phat.below.NP ][ which.min( abs( pvals[ pct.vec < Phat.below.NP ] - alpha ) ) ]
+
+  # if user wanted the lower tail
+  if ( tail == "below" ) {
+    res = data.frame(Est = Phat.below.NP,
+                     lo = CI.lo.NP,
+                     hi = CI.hi.NP )
+    pcts = pct.vec
+  }
+
+  # if user wanted the upper tail, reverse everything
+  if ( tail == "above" ) {
+    res = data.frame( Est = 1 - Phat.below.NP,
+                      lo = 1 - CI.hi.NP,
+                      hi = 1 - CI.lo.NP )
+    pcts = 1 - pct.vec
+  }
+
+  if ( return.vectors == FALSE ) return(res)
+  if ( return.vectors == TRUE ) invisible( list(res = res,
+                                                pcts = pcts,
+                                                pvals = pvals) )
+}
+
 
 ################################ FN: COMPUTE PROPORTION OF EFFECTS STRONGER THAN THRESHOLD ################################
 
@@ -466,8 +587,8 @@ calib_ests = function(yi,
 
 # ~~ the "bootstrap" argument is annoying because it only applies for the parametric method
 prop_stronger = function( q,
-                          M,
-                          t2,
+                          M = NA,
+                          t2 = NA,
                           se.M = NA,
                           se.t2 = NA,
                           CI.level = 0.95,
@@ -486,7 +607,13 @@ prop_stronger = function( q,
 
 
   ##### Check for Bad Input #####
-  if ( t2 < 0 ) stop("Heterogeneity cannot be negative")
+
+  if ( ( estimate.method == "parametric" | ci.method == "parametric" ) &
+       ( is.na(t2) | is.na(M) ) ) {
+    stop("Must provide M and t2 if using estimate.method = 'parametric' or ci.method = 'parametric'.")
+  }
+
+  if ( !is.na(t2) & t2 < 0 ) stop("Heterogeneity cannot be negative")
 
   if ( ! is.na(se.M) ) {
     if (se.M < 0) stop("se.M cannot be negative")
@@ -509,12 +636,12 @@ prop_stronger = function( q,
   }
 
   if ( ci.method == "parametric" & estimate.method != "parametric"){
-    stop("If ci.method = 'parametric', must use estimate.method = 'parametric' as well")
+    stop("\nWarning: You chose ci.method = 'parametric' (or you used the default),\nin which case you must use estimate.method = 'parametric' as well.\n")
   }
 
   ##### Messages When Not All Output Can Be Computed #####
-  if ( is.na(se.M) | is.na(se.t2) ) message("Cannot compute inference without se.M and \nse.t2.\n Returning only point estimates.")
-  if ( is.null(dat) ) message("Cannot report Shapiro normality test without dat.\n Returning NA.")
+  if ( ci.method == "parametric" & ( is.na(se.M) | is.na(se.t2) ) ) message("Cannot compute inference without se.M and \nse.t2.\n Returning only point estimates.\n")
+  if ( is.null(dat) | is.na(M) | is.na(t2) ) message("Cannot report Shapiro normality test without dat, M, and t2.\n Returning NA for Shapiro p-value.\n")
 
   if ( ( estimate.method == "calibrated" | ci.method == "calibrated" ) &
        is.null(dat) ) stop("Cannot use calibrated method without providing dat.")
@@ -524,6 +651,9 @@ prop_stronger = function( q,
   # bm
 
   if ( estimate.method == "parametric" ) {
+
+    #warning("\nWarning: You chose estimate.method = 'parametric' (or you used the default).\nIt is usually better to use estimate.method = 'calibrated'.\n")
+
     # same regardless of tail
     Z = (q - M) / sqrt(t2)
 
@@ -542,14 +672,16 @@ prop_stronger = function( q,
   }
 
   ##### Inference #####
-
   if ( ci.method == "parametric") {
+
+    warning("Warning: You chose ci.method = 'parametric' (or you used the default).\nIt is almost always better to use ci.method = 'calibrated'.\n")
+
     # is point estimate extreme enough to require bootstrap?
     extreme = (phat < 0.15 | phat > 0.85)
 
     if ( extreme ) {
       if ( bootstrap == "ifneeded" ) {
-        message("The estimated proportion is close to 0 or 1,\n so the theoretical CI may perform poorly. Using \n bootstrapping instead.")
+        message("The estimated proportion is close to 0 or 1,\n so the theoretical CI may perform poorly. Using \n bootstrapping instead.\n")
 
         # more sanity checks
         if ( is.null(dat) ) stop("Must provide dat in order to bootstrap.")
@@ -632,10 +764,6 @@ prop_stronger = function( q,
 
   } # end ci.method == "parametric"
 
-
-
-
-
   if ( ci.method == "calibrated") {
 
         # more sanity checks
@@ -659,6 +787,7 @@ prop_stronger = function( q,
 
                                                   if ( tail == "above" ) phatb = sum(calib.b > c(q)) / length(calib.b)
                                                   if ( tail == "below" ) phatb = sum(calib.b < c(q)) / length(calib.b)
+                                                  return(phatb)
                                                 } ) )
 
         # catch BCa failures (usually due to infinite w adjustment issue)
@@ -674,7 +803,7 @@ prop_stronger = function( q,
           c(lo, hi, SE)
 
         }, error = function(err) {
-          warning("Had problems computing BCa CI. \nYou could try using ci.method = 'sign.test' \nif I^2 > 0.50 and the point estimates appear unimodal and symmetric.")
+          warning("\nHad problems computing BCa CI. \nYou could try using ci.method = 'sign.test' \nif I^2 > 0.50 and the point estimates appear unimodal and symmetric.")
           boot.values = c(NA, NA, NA)
         }
         )
@@ -685,9 +814,26 @@ prop_stronger = function( q,
 
       } # end ci.method == "calibrated"
 
+  if (ci.method == "sign.test") {
+
+    warning("\n\nWarning: You are estimating a CI using the sign test method.\nThis method only works well when I^2 > 0.50 and the point estimates are\n relatively symmetric and unimodal.\nThis method does not provide a standard error estimate, only CI limits.")
+
+    Phat.np = prop_stronger_sign(q = q,
+                               yi = dat[[yi.name]],
+                               vi = dat[[vi.name]],
+                               CI.level = CI.level,
+                               tail = tail,
+                               R = R,
+                               return.vectors = FALSE )
+
+    lo = Phat.np$lo
+    hi = Phat.np$hi
+    SE = NA  # this method doesn't give an SE
+  }
 
   ##### Normality Check #####
-  if ( !is.null(dat) ) {
+  if ( !is.null(dat) & !is.na(M) & !is.na(t2) ) {
+    browser()
     if ( !yi.name %in% names(dat) ) stop("dat must contain variable called yi.name.")
     if ( !vi.name %in% names(dat) ) stop("dat must contain variable called vi.name.")
 
