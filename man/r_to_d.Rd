@@ -56,5 +56,5 @@ r_to_d( r = -0.3,
         Ns = 30 )
 }
 \references{
-1. Mathur MB & VanderWeele TJ. A simple, interpretable conversion from Pearson's correlation to Cohen's d for meta-analysis. Under revision.
+1. Mathur MB & VanderWeele TJ (2019). A simple, interpretable conversion from Pearson's correlation to Cohen's d for meta-analysis. Epidemiology.
 }

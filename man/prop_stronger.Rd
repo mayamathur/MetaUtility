@@ -4,9 +4,10 @@
 \alias{prop_stronger}
 \title{Estimate proportion of true effect sizes above or below a threshold}
 \usage{
-prop_stronger(q, M, t2, se.M = NA, se.t2 = NA, CI.level = 0.95,
-  tail = NA, dat = NULL, R = 2000, bootstrap = "ifneeded",
-  yi.name = "yi", vi.name = "vi")
+prop_stronger(q, M = NA, t2 = NA, se.M = NA, se.t2 = NA,
+  CI.level = 0.95, tail = NA, estimate.method = "parametric",
+  ci.method = "parametric", calib.est.method = "DL", dat = NULL,
+  R = 2000, bootstrap = "ifneeded", yi.name = "yi", vi.name = "vi")
 }
 \arguments{
 \item{q}{True effect size that is the threshold for "scientific importance"}
@@ -145,7 +146,7 @@ prop_stronger( q = log(0.9),
                 R = 250 )
 }
 \references{
-1. Mathur MB & VanderWeele TJ. New metrics for meta-analyses of heterogeneous effects. Statistics in Medicine (2018).
+1. Mathur MB & VanderWeele TJ (2019). New metrics for meta-analyses of heterogeneous effects. Statistics in Medicine.
 
 2. Mathur MB & VanderWeele TJ. New metrics for multisite replication projects. Under review.
 }

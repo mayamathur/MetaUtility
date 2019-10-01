@@ -28,8 +28,6 @@
 
 # assumes a comma before the upper limit
 # everything before first bracket treated as point estimate
-
-
 parse_CI_string = function( string, sep = "," ) {
 
   # standardize the CI brackets
@@ -299,7 +297,6 @@ z_to_r = Vectorize( function(z) {
 #'
 #' # for nicer formatting
 #' format_CI( tau_CI(m)[1], tau_CI(m)[2] )
-
 tau_CI = function( meta,
                    CI.level = 0.95 ) {
 
@@ -320,7 +317,39 @@ tau_CI = function( meta,
 
 ################################ FN: CALIBRATED ESTIMATES ################################
 
-# ~~~ DOCUMENT ME
+#' Return calibrated estimates of studies' true effect sizes
+#'
+#' Returns estimates of the true effect in each study based on the methods of Wang & Lee (2019).
+#' Unlike the point estimates themselves, these "calibrated" estimates have been
+#' appropriately shrunk to correct the overdispersion that arises due to the studies' finite sample sizes.
+#' By default, uses Dersimonian-Laird moments-based estimates of the mean and variance of the true
+#' effects, as Wang & Lee (2019) recommended.
+#' @param yi Vector of study-level point estimates
+#' @param sei Vector of study-level standard errors
+#' @param method Estimation method for mean and variance of true effects (passed to \code{metafor::rma.uni})
+#' @export
+#' @import
+#' metafor
+#' stats
+#' @references
+#' 1. Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
+#' predictive distributions: Summarizing meta‐analyses
+#' beyond means and confidence intervals. Research Synthesis Methods.
+#' @examples
+#' d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
+#'                      ci=cpos, di=cneg, data=metafor::dat.bcg)
+#'
+#' # calculate calibrated estimates
+#' d$calib = calib_ests( yi = d$yi,
+#'                       sei = sqrt(d$vi) )
+#'
+#' # look at 5 studies with the largest calibrated estimates
+#' d = d[ order(d$calib, decreasing = TRUE), ]
+#' d$trial[1:5]
+#'
+#' # look at kernel density estimate of calibrated estimates
+#' plot(density(d$calib))
+
 calib_ests = function(yi,
                       sei,
                       method = "DL") {
