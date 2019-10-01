@@ -391,7 +391,7 @@ calib_ests = function(yi,
 
 #' Return sign test p-value for meta-analysis percentile
 #'
-#' Returns a p-value for testing the hypothesis that \code{mu} is the \code{pct}^th
+#' Internal function not intended for user to call. Returns a p-value for testing the hypothesis that \code{mu} is the \code{pct}^th
 #' percentile of the true effect distribution based on the nonparametric sign test
 #' method of Wang et al. (2010). This in an internal function called by \code{prop.stronger}
 #' when using the sign test method.
@@ -444,12 +444,21 @@ phi <- function(theta=theta,
 }
 
 
-# ~~ INTERNAL: DON'T EXPORT THIS ONE
-# this is my own fn
-# a simpler grid search across Phat values than their search across percentiles
-# since Phat is conveniently bounded
-# calculates p-value for different percentiles, fixing q, rather than for different q, fixing percentile
-
+#' Return sign test point estimate of proportion of effects above or below threshold.
+#'
+#' Internal function not intended for user to call. Uses an extension of the sign test method of Wang et al. (2010) to estimate the proportion of true (i.e., population parameter) effect sizes in a meta-analysis
+#' that are above or below a specified threshold of scientific importance.
+#' @param q True effect size that is the threshold for "scientific importance"
+#' @param yi Study-level point estimates
+#' @param vi study-level variances
+#' @param CI.level Confidence level as a proportion
+#' @param tail \code{above} for the proportion of effects above \code{q}; \code{below} for
+#' the proportion of effects below \code{q}.
+#' @param R Number of simulation iterates to estimate null distribution of sign test statistic
+#' @return.vectors Should all percents and p-values from the grid search be returned?
+#' @references
+#' 1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
+#' of the random effects distribution in meta-analysis. Annals of Applied Statistics.
 prop_stronger_sign = function(q,
                             yi,
                             vi,

@@ -12,14 +12,16 @@ phi(theta = theta, theta.sd = theta.sd, mu = mu0, pct = 0.5,
 
 \item{theta.sd}{Vector of study-level standard errors}
 
-\item{mu}{The effect size to test as the \code{pct}th percentile}
+\item{mu}{The effect size to test as the \code{pct}^th percentile}
 
 \item{pct}{The percentile of interest}
+
+\item{nperm}{Number of simulation iterates to use when estimating null distribution of the test statistic.}
 
 \item{method}{Estimation method for mean and variance of true effects (passed to \code{metafor::rma.uni})}
 }
 \description{
-Returns a p-value for testing the hypothesis that \code{mu} is the $\code{pct}^th$
+Internal function not intended for user to call. Returns a p-value for testing the hypothesis that \code{mu} is the \code{pct}^th
 percentile of the true effect distribution based on the nonparametric sign test
 method of Wang et al. (2010). This in an internal function called by \code{prop.stronger}
 when using the sign test method.
