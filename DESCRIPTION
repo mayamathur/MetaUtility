@@ -1,7 +1,7 @@
 Package: MetaUtility
 Type: Package
-Title: Utility Functions for Conducting and Reporting Meta-Analysis
-Version: 1.2.0
+Title: Utility Functions for Conducting and Interpreting Meta-Analyses
+Version: 2.0.0
 Author: Maya B. Mathur, Tyler J. VanderWeele
 Maintainer: Maya B. Mathur <mmathur@stanford.edu>
 Description: Contains functions to estimate the proportion of effects stronger than a threshold

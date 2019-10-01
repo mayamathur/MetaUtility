@@ -176,7 +176,7 @@ format_stat = Vectorize( function(x,
 #' @details To preserve the sign of the effect size, the code takes the absolute value of \code{delta}. The standard error
 #' estimate assumes that X is approximately normal and that \code{N} is large.
 #' @references
-#' 1. Mathur MB & VanderWeele TJ. A simple, interpretable conversion from Pearson's correlation to Cohen's d for meta-analysis. Under revision.
+#' 1. Mathur MB & VanderWeele TJ (2019). A simple, interpretable conversion from Pearson's correlation to Cohen's d for meta-analysis. Epidemiology.
 #' @export
 #' @examples
 #' # d for a 1-unit vs. a 2-unit increase in X
@@ -219,6 +219,12 @@ r_to_d =
       term2 = 1 / ( 2 * (Ns - 1) )
       if (sx.known == TRUE) term2 = 0
       se = abs(d) * sqrt( term1 + term2 )
+
+      # handle case where r = 0 exactly using the limit
+      # see saved file "Limit as r -> 0"
+      if ( r == 0 ) {
+        se = (1/sx) * delta * sqrt(1 / (N-3))
+      }
 
       d.lo = d - qnorm(.975) * se
       d.hi = d + qnorm(.975) * se
@@ -489,7 +495,7 @@ prop_stronger_sign = function(q,
 #' such that if any bootstrap iterates fail (usually because of model estimation problems), the error message is printed but the
 #' bootstrap iterate is simply discarded so that confidence interval estimation can proceed.
 #' @references
-#' 1. Mathur MB & VanderWeele TJ. New metrics for meta-analyses of heterogeneous effects. Statistics in Medicine (2018).
+#' 1. Mathur MB & VanderWeele TJ (2019). New metrics for meta-analyses of heterogeneous effects. Statistics in Medicine.
 #'
 #' 2. Mathur MB & VanderWeele TJ. New metrics for multisite replication projects. Under review.
 #' @examples
@@ -688,7 +694,6 @@ prop_stronger = function( q,
         if ( !yi.name %in% names(dat) ) stop("dat must contain variable called yi.name.")
         if ( !vi.name %in% names(dat) ) stop("dat must contain variable called vi.name.")
 
-        # bookmark
         bootCIs = lo = hi = SE = NULL
 
         boot.res = suppressWarnings( safe_boot( data = dat,
