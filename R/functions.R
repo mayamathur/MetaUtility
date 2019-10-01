@@ -312,6 +312,25 @@ tau_CI = function( meta,
 }
 
 
+################################ FN: CALIBRATED ESTIMATES ################################
+
+# ~~~ DOCUMENT ME
+calib_ests = function(yi,
+                  sei,
+                  method = "DL") {
+
+  meta = rma.uni( yi = yi,
+                  sei = sei,
+                  method = method )
+
+  muhat = meta$b
+  t2 = meta$tau2
+
+  # return ensemble estimates
+  c(muhat) + ( c(t2) / ( c(t2) + sei^2 ) )^(1/2) * ( yi - c(muhat) )
+}
+
+
 
 ################################ FN: COMPUTE PROPORTION OF EFFECTS STRONGER THAN THRESHOLD ################################
 
@@ -475,12 +494,17 @@ prop_stronger = function( q,
                           CI.level = 0.95,
                           tail = NA,
 
+                          estimate.method = "parametric",  # "parametric" or "calibrated"
+                          ci.method = "parametric", # "parametric", "calibrated", or "sign.test"
+
                           # below arguments only needed for bootstrapping
                           dat = NULL,
                           R = 2000,
                           bootstrap = "ifneeded",  # "ifneeded" or "never"
                           yi.name = "yi",
                           vi.name = "vi" ) {
+
+  # bm
 
 
   ##### Check for Bad Input #####
