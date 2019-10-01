@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1569940471022.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "525|42|531|2|\n533|42|541|2|\n545|35|632|2|\n",
+    "hash" : "0",
+    "id" : "B7DF3528",
+    "lastKnownWriteTime" : 1569948810,
+    "last_content_update" : 1569948810693,
+    "path" : "~/Dropbox/Personal computer/Independent studies/MetaUtility R package/MetaUtility/R/functions.R",
+    "project_path" : "R/functions.R",
+    "properties" : {
+        "cursorPosition" : "329,82",
+        "scrollLine" : "306"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
