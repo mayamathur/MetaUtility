@@ -386,6 +386,24 @@ calib_ests = function(yi,
 ### Output a 2-sided p-value. ###
 ##########################################################################
 
+
+
+
+#' Return sign test p-value for meta-analysis percentile
+#'
+#' Returns a p-value for testing the hypothesis that \code{mu} is the \code{pct}^th
+#' percentile of the true effect distribution based on the nonparametric sign test
+#' method of Wang et al. (2010). This in an internal function called by \code{prop.stronger}
+#' when using the sign test method.
+#' @param theta Vector of study-level point estimates
+#' @param theta.sd Vector of study-level standard errors
+#' @param mu The effect size to test as the \code{pct}^th percentile
+#' @param pct The percentile of interest
+#' @param method Estimation method for mean and variance of true effects (passed to \code{metafor::rma.uni})
+#' @param nperm Number of simulation iterates to use when estimating null distribution of the test statistic.
+#' @references
+#' 1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
+#' of the random effects distribution in meta-analysis. Annals of Applied Statistics.
 phi <- function(theta=theta,
                 theta.sd=theta.sd,
                 mu=mu0,

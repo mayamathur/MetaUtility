@@ -15,9 +15,9 @@ calib_ests(yi, sei, method = "DL")
 }
 \description{
 Returns estimates of the true effect in each study based on the methods of Wang & Lee (2019).
-Unlike the point estimates themselves, these "calibrated" estimates have  estimates that have been
+Unlike the point estimates themselves, these "calibrated" estimates have been
 appropriately shrunk to correct the overdispersion that arises due to the studies' finite sample sizes.
-By default, uses Dersimonian-Laird moments-based estimates of the mean and variance of the true
+By default, this function uses Dersimonian-Laird moments-based estimates of the mean and variance of the true
 effects, as Wang & Lee (2019) recommended.
 }
 \examples{
