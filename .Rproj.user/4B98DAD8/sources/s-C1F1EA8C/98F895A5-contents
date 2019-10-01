@@ -316,8 +316,8 @@ tau_CI = function( meta,
 
 # ~~~ DOCUMENT ME
 calib_ests = function(yi,
-                  sei,
-                  method = "DL") {
+                      sei,
+                      method = "DL") {
 
   meta = rma.uni( yi = yi,
                   sei = sei,
@@ -464,28 +464,6 @@ calib_ests = function(yi,
 #'                 R = 250 )
 
 
- d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-                    ci=cpos, di=cneg, data=metafor::dat.bcg)
-
- # fit random-effects model
- # note that metafor package returns on the log scale
- m = metafor::rma.uni(yi= d$yi, vi=d$vi, knha=TRUE,
- measure="RR", method="REML" )
-
- # pooled point estimate (RR scale)
- exp(m$b)
-
- # estimate the proportion of effects stronger than RR = 0.80
- # no bootstrapping will be needed
- prop_stronger( q = log(0.8),
-                M = as.numeric(m$b),
-                t2 = m$tau2,
-                se.M = as.numeric(m$vb),
-                se.t2 = m$se.tau2,
-                CI.level = 0.95,
-               tail = "below",
-               bootstrap = "ifneeded")
-
 prop_stronger = function( q,
                           M,
                           t2,
@@ -496,6 +474,7 @@ prop_stronger = function( q,
 
                           estimate.method = "parametric",  # "parametric" or "calibrated"
                           ci.method = "parametric", # "parametric", "calibrated", or "sign.test"
+                          calib.est.method = "DL",  # will be passed to rma.uni
 
                           # below arguments only needed for bootstrapping
                           dat = NULL,
@@ -518,108 +497,192 @@ prop_stronger = function( q,
     if (se.t2 < 0) stop("se.t2 cannot be negative")
   }
 
+  if ( !estimate.method %in% c( "parametric", "calibrated" ) ) {
+    stop("Invalid estimate.method argument")
+  }
+
+  if ( !ci.method %in% c( "parametric", "calibrated", "sign.test" ) ) {
+    stop("Invalid ci.method argument")
+  }
+
   if ( !bootstrap %in% c( "ifneeded", "never" ) ) {
     stop("Invalid bootstrap argument")
+  }
+
+  if ( ci.method == "parametric" & estimate.method != "parametric"){
+    stop("If ci.method = 'parametric', must use estimate.method = 'parametric' as well")
   }
 
   ##### Messages When Not All Output Can Be Computed #####
   if ( is.na(se.M) | is.na(se.t2) ) message("Cannot compute inference without se.M and \nse.t2.\n Returning only point estimates.")
   if ( is.null(dat) ) message("Cannot report Shapiro normality test without dat.\n Returning NA.")
 
+  if ( ( estimate.method == "calibrated" | ci.method == "calibrated" ) &
+       is.null(dat) ) stop("Cannot use calibrated method without providing dat.")
 
   ##### Point Estimates #####
-  # same regardless of tail
-  Z = (q - M) / sqrt(t2)
 
-  if ( tail == "above" ) phat = 1 - pnorm(Z)
-  else if ( tail == "below" ) phat = pnorm(Z)
+  # bm
 
-  # is point estimate extreme enough to require bootstrap?
-  extreme = (phat < 0.15 | phat > 0.85)
+  if ( estimate.method == "parametric" ) {
+    # same regardless of tail
+    Z = (q - M) / sqrt(t2)
 
-  if ( extreme ) {
-    if ( bootstrap == "ifneeded" ) {
-      message("The estimated proportion is close to 0 or 1,\n so the theoretical CI may perform poorly. Using \n bootstrapping instead.")
+    if ( tail == "above" ) phat = 1 - pnorm(Z)
+    else if ( tail == "below" ) phat = pnorm(Z)
+  }
 
-      # more sanity checks
-      if ( is.null(dat) ) stop("Must provide dat in order to bootstrap.")
-      if ( !yi.name %in% names(dat) ) stop("dat must contain variable called yi.name.")
-      if ( !vi.name %in% names(dat) ) stop("dat must contain variable called vi.name.")
+  if ( estimate.method == "calibrated" ) {
+    # use DL method by default
+    calib = calib_ests( yi = dat[[yi.name]],
+                      sei = sqrt(dat[[vi.name]]),
+                      calib.est.method)
 
-      # bookmark
-      bootCIs = lo = hi = SE = NULL
+    if ( tail == "above" ) phat = sum(calib > c(q)) / length(calib)
+    if ( tail == "below" ) phat = sum(calib < c(q)) / length(calib)
+  }
 
-      # bookmark
-      boot.res = suppressWarnings( safe_boot( data = dat,
-                                              parallel = "multicore",
-                                              R = R,
-                                              statistic = get_stat,
-                                              # below arguments are being passed to get_stat
-                                              q = q,
-                                              tail = tail,
-                                              yi.name = yi.name,
-                                              vi.name = vi.name ) )
+  ##### Inference #####
+  if ( ci.method == "parametric") {
 
-      # if BCa fails (due to infinite w adjustment issue), use percentile instead
-      boot.values = tryCatch( {
+    # is point estimate extreme enough to require bootstrap?
+    extreme = (phat < 0.15 | phat > 0.85)
 
-        bootCIs = boot.ci(boot.res,
-                          type="bca",
-                          conf = CI.level )
-        lo = round( bootCIs$bca[4], 2 )
-        hi = round( bootCIs$bca[5], 2 )
-        SE = sd(boot.res$t)
+    if ( extreme ) {
+      if ( bootstrap == "ifneeded" ) {
+        message("The estimated proportion is close to 0 or 1,\n so the theoretical CI may perform poorly. Using \n bootstrapping instead.")
 
-        c(lo, hi, SE)
+        # more sanity checks
+        if ( is.null(dat) ) stop("Must provide dat in order to bootstrap.")
+        if ( !yi.name %in% names(dat) ) stop("dat must contain variable called yi.name.")
+        if ( !vi.name %in% names(dat) ) stop("dat must contain variable called vi.name.")
 
-      }, error = function(err) {
-        warning("Had problems computing BCa CI. Using percentile method instead.")
+        bootCIs = lo = hi = SE = NULL
 
-        bootCIs = boot.ci(boot.res,
+        # bookmark
+        boot.res = suppressWarnings( safe_boot( data = dat,
+                                                parallel = "multicore",
+                                                R = R,
+                                                statistic = function(original, indices) {
+
+                                                  b = original[indices,]
+
+                                                  calib.b = calib_ests( yi = b[[yi.name]],
+                                                                        sei = sqrt(b[[vi.name]]),
+                                                                        calib.est.method)
+
+                                                  if ( tail == "above" ) phatb = sum(calib.b > c(q)) / length(calib.b)
+                                                  if ( tail == "below" ) phatb = sum(calib.b < c(q)) / length(calib.b)
+                                                },
+                                                # below arguments are being passed to get_stat
+                                                q = q,
+                                                tail = tail,
+                                                yi.name = yi.name,
+                                                vi.name = vi.name,
+                                                calib.est.method = calib.est.method ) )
+
+        # if BCa fails (due to infinite w adjustment issue), use percentile instead
+        boot.values = tryCatch( {
+
+          bootCIs = boot.ci(boot.res,
+                            type="bca",
+                            conf = CI.level )
+          lo = round( bootCIs$bca[4], 2 )
+          hi = round( bootCIs$bca[5], 2 )
+          SE = sd(boot.res$t)
+
+          c(lo, hi, SE)
+
+        }, error = function(err) {
+          warning("Had problems computing BCa CI. You could try using ci.method = 'sign.test' \nif I^2 > 0.50 and the point estimates appear unimodal and symmetric.")
+          boot.values = c(NA, NA, NA)
+        }
+        )
+
+        lo = boot.values[1]
+        hi = boot.values[2]
+        SE = boot.values[3]
+
+      } # end loop for boot == "ifneeded"
+
+
+    }
+
+
+    if ( !extreme ) {
+      # do inference only if given needed SEs
+      if ( !is.na(se.M) & !is.na(se.t2) ){
+
+        ##### Delta Method Inference on Original Scale #####
+        term1.1 = se.M^2 / t2
+        term1.2 = ( se.t2^2 * ( q - M )^2 ) / ( 4 * t2^3 )
+        term1 = sqrt( term1.1 + term1.2 )
+
+        SE = term1 * dnorm(Z)
+
+        # confidence interval
+        tail.prob = ( 1 - CI.level ) / 2
+        lo = max( 0, phat + qnorm( tail.prob )*SE )
+        hi = min( 1, phat - qnorm( tail.prob )*SE )
+      } else {
+        SE = lo = hi = NA
+      }
+    }
+
+  }  # end of ci.method == "parametric"
+
+
+  #  bm
+  if (ci.method == "calibrated") {
+    # more sanity checks
+    if ( is.null(dat) ) stop("Must provide dat for ci.method = 'calibrated'.")
+    if ( !yi.name %in% names(dat) ) stop("dat must contain variable called yi.name.")
+    if ( !vi.name %in% names(dat) ) stop("dat must contain variable called vi.name.")
+
+    bootCIs = lo = hi = SE = NULL
+
+    boot.res = suppressWarnings( safe_boot( data = dat,
+                                            parallel = "multicore",
+                                            R = R,
+                                            statistic = get_stat,
+                                            # below arguments are being passed to get_stat
+                                            q = q,
+                                            tail = tail,
+                                            yi.name = yi.name,
+                                            vi.name = vi.name ) )
+
+    # if BCa fails (due to infinite w adjustment issue), use percentile instead
+    boot.values = tryCatch( {
+
+      bootCIs = boot.ci(boot.res,
+                        type="bca",
+                        conf = CI.level )
+      lo = round( bootCIs$bca[4], 2 )
+      hi = round( bootCIs$bca[5], 2 )
+      SE = sd(boot.res$t)
+
+      c(lo, hi, SE)
+
+    }, error = function(err) {
+      warning("Had problems computing BCa CI. Using percentile method instead.")
+
+      bootCIs = boot.ci(boot.res,
                         type="perc",
                         conf = CI.level )
 
-        lo = round( bootCIs$perc[4], 2 )
+      lo = round( bootCIs$perc[4], 2 )
 
-        hi = round( bootCIs$perc[5], 2 )
+      hi = round( bootCIs$perc[5], 2 )
 
-        SE = sd(boot.res$t)
-        c(lo, hi, SE)
-      }
-      )
-
-      lo = boot.values[1]
-      hi = boot.values[2]
-      SE = boot.values[3]
-
-    } # end loop for boot == "ifneeded"
-
-    if ( bootstrap == "never" ) {
-      warning("The estimated proportion is close to 0 or 1,\n so the theoretical CI may perform poorly. Should use \nBCa bootstrapping instead.")
-      SE = lo = hi = NA
+      SE = sd(boot.res$t)
+      c(lo, hi, SE)
     }
-  }
+    )
 
-
-  if ( !extreme ) {
-    # do inference only if given needed SEs
-    if ( !is.na(se.M) & !is.na(se.t2) ){
-
-      ##### Delta Method Inference on Original Scale #####
-      term1.1 = se.M^2 / t2
-      term1.2 = ( se.t2^2 * ( q - M )^2 ) / ( 4 * t2^3 )
-      term1 = sqrt( term1.1 + term1.2 )
-
-      SE = term1 * dnorm(Z)
-
-      # confidence interval
-      tail.prob = ( 1 - CI.level ) / 2
-      lo = max( 0, phat + qnorm( tail.prob )*SE )
-      hi = min( 1, phat - qnorm( tail.prob )*SE )
-    } else {
-      SE = lo = hi = NA
-    }
-  }
+    lo = boot.values[1]
+    hi = boot.values[2]
+    SE = boot.values[3]
+  } # end of ci.method == "calibrated"
 
   ##### Normality Check #####
   if ( !is.null(dat) ) {

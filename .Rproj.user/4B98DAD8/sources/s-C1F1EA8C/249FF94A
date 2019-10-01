@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1569938616070.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3710387708",
+    "id" : "249FF94A",
+    "lastKnownWriteTime" : 1569939437,
+    "last_content_update" : 1569939437262,
+    "path" : "~/Dropbox/Personal computer/Independent studies/MetaUtility R package/MetaUtility/tests/testthat.R",
+    "project_path" : "tests/testthat.R",
+    "properties" : {
+        "cursorPosition" : "34,0",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
