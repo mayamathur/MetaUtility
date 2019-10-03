@@ -391,41 +391,40 @@ calib_ests = function(yi,
 
 #' Return sign test p-value for meta-analysis percentile
 #'
-#' Internal function not intended for user to call. Returns a p-value for testing the hypothesis that \code{mu} is the \code{pct}^th
+#' Returns a p-value for testing the hypothesis that \code{mu} is the \code{pct}^th
 #' percentile of the true effect distribution based on the nonparametric sign test
-#' method of Wang et al. (2010). This in an internal function called by \code{prop.stronger}
+#' method of Wang et al. (2010). This function is called by \code{prop.stronger}
 #' when using the sign test method.
-#' @param theta Vector of study-level point estimates
-#' @param theta.sd Vector of study-level standard errors
+#' @param yi Vector of study-level point estimates
+#' @param sei Vector of study-level standard errors
 #' @param mu The effect size to test as the \code{pct}^th percentile
 #' @param pct The percentile of interest
-#' @param method Estimation method for mean and variance of true effects (passed to \code{metafor::rma.uni})
-#' @param nperm Number of simulation iterates to use when estimating null distribution of the test statistic.
+#' @param R Number of simulation iterates to use when estimating null distribution of the test statistic.
 #' @references
 #' 1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
 #' of the random effects distribution in meta-analysis. Annals of Applied Statistics.
-phi <- function(theta=theta,
-                theta.sd=theta.sd,
-                mu=mu0,
-                pct=0.5,
-                nperm=2000) {
+pct_pval <- function(yi,
+                sei,
+                mu,
+                pct,
+                R=2000) {
 
-  K<-length(theta)
+  K<-length(yi)
 
   # "score" is equivalent to kth contribution of sum in
   #  first eq. on page 4 (see my note in sidebar for equivalence)
-  score <- pnorm( (mu-theta)/theta.sd ) - 0.5
+  score <- pnorm( (mu-yi)/sei ) - 0.5
   # OBSERVED test stat
   stat<-sum(score)
 
   # initialize what will be the test stat vector UNDER H0
   # i.e., Tstar in paper
-  test.stat<-rep(0,nperm)
+  test.stat<-rep(0,R)
 
-  # draw Deltas for nperm iterations
+  # draw Deltas for R iterations
   # this is the H0 distribution
   i<-1
-  while (i<=nperm) {
+  while (i<=R) {
     # here they use "ref1" and "ref2" (0/1) instead of Delta (1/-1)
     #  for computational convenience
     ref1 <- rbinom(K,1,pct)
@@ -455,7 +454,10 @@ phi <- function(theta=theta,
 #' @param tail \code{above} for the proportion of effects above \code{q}; \code{below} for
 #' the proportion of effects below \code{q}.
 #' @param R Number of simulation iterates to estimate null distribution of sign test statistic
-#' @return.vectors Should all percents and p-values from the grid search be returned?
+#' @param return.vectors Should all percents and p-values from the grid search be returned?
+#' @import
+#' purrr
+#' dplyr
 #' @references
 #' 1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
 #' of the random effects distribution in meta-analysis. Annals of Applied Statistics.
@@ -471,11 +473,11 @@ prop_stronger_sign = function(q,
   # Phat values to try
   pct.vec = seq( 0, 1, 0.001 )
 
-  pvals = pct.vec %>% map( function(x) phi( theta = yi,
-                                            theta.sd = sqrt(vi),
+  pvals = pct.vec %>% map( function(x) pct_pval( yi = yi,
+                                            sei = sqrt(vi),
                                             mu = q,
                                             pct = x,
-                                            nperm = R ) ) %>%
+                                            R = R ) ) %>%
     unlist # return a double-type vector instead of list
 
   # point estimate: the value of Phat.below with the largest p-value?
@@ -520,15 +522,18 @@ prop_stronger_sign = function(q,
 #' Estimate proportion of true effect sizes above or below a threshold
 #'
 #' Estimates the proportion of true (i.e., population parameter) effect sizes in a meta-analysis
-#' that are above or below a specified threshold of scientific importance.
+#' that are above or below a specified threshold of scientific importance based on the methods of Mathur & VanderWeele (2018).
 #' @param q True effect size that is the threshold for "scientific importance"
 #' @param M Pooled point estimate from meta-analysis
-#' @param t2 Estimated heterogeneity (tau^2) from meta-analysis
-#' @param se.M Estimated standard error of pooled point estimate from meta-analysis
+#' @param t2 Estimated heterogeneity (tau^2) from meta-analysis (required only for parametric estimation/inference and for Shapiro p-value)
+#' @param se.M Estimated standard error of pooled point estimate from meta-analysis (required only for parametric estimation/inference and for Shapiro p-value)
 #' @param se.t2 Estimated standard error of tau^2 from meta-analysis
 #' @param CI.level Confidence level as a proportion
 #' @param tail \code{above} for the proportion of effects above \code{q}; \code{below} for
 #' the proportion of effects below \code{q}.
+#' @param estimate.method Method for point estimation of the proportion (\code{"parametric"} or \code{"calibrated"}).
+#' @param ci.method Method for confidence interval estimation (\code{"parametric"}, \code{"calibrated"}, or \code{"sign.test"}).
+#' @param calib.est.method Method for estimating the mean and variance of the true effects when computing calibrated estimates.
 #' @param dat Dataset of point estimates (with names equal to the passed \code{yi.name}) and their variances
 #' (with names equal to the passed \code{vi.name}). Only required when bootstrapping.
 #' @param R Number of bootstrap iterates. Only required when bootstrapping.
@@ -544,12 +549,25 @@ prop_stronger_sign = function(q,
 #' Returns a dataframe containing the point estimate for the proportion, its estimated standard error, and confidence
 #' interval limits.
 #' @details
-#' When the estimated proportion is less than 0.15 or more than 0.85, it is best to bootstrap the confidence interval
+#' These methods perform well only in meta-analyses with at least 10 studies; we do not recommend reporting them in smaller
+#' meta-analyses. By default, \code{prop_stronger} uses parametric estimation for the proportion of effects above or below the chosen threshold.
+#' However, it is usually preferable to use the calibrated method for both point estimation and confidence interval estimation.
+#' The parametric method is maintained as the default for reverse-compatibility.
+#'
+#' The parametric method assumes that the true effects are approximately normal and that the number of studies is large.
+#' When using the parametric method and the estimated proportion is less than 0.15 or more than 0.85, it is best to bootstrap the confidence interval
 #' using the bias-corrected and accelerated (BCa) method (Mathur & VanderWeele, 2018); this is the default behavior of \code{prop_stronger}.
 #' Sometimes BCa confidence interval estimation fails, in which case \code{prop_stronger} instead uses the percentile method,
 #' issuing a warning if this is the case. We use a modified "safe" version of the \code{boot} package code for bootstrapping
 #' such that if any bootstrap iterates fail (usually because of model estimation problems), the error message is printed but the
 #' bootstrap iterate is simply discarded so that confidence interval estimation can proceed.
+#'
+#' The calibrated method makes no assumptions about the distribution of true effects and performs well in meta-analyses with
+#' as few as 10 studies. However, this method may fail to converge especially for small meta-analyses for which the threshold is
+#' distant from the mean of the true effects. In these cases, it is sometimes reasonable to use the sign test method, described below.
+#'
+#' The sign test method is recommended only when BCa inference from the calibrated method fails to converge. In this case, if the relative heterogeneity I^2 is moderate
+#' or high (I^2 > 0.5) and the point estimates appear reasonably symmetric and unimodal, the sign test method provides reliable inference.
 #' @references
 #' 1. Mathur MB & VanderWeele TJ (2019). New metrics for meta-analyses of heterogeneous effects. Statistics in Medicine.
 #'
@@ -647,7 +665,6 @@ prop_stronger_sign = function(q,
 #'                 R = 250 )
 
 
-# ~~ the "bootstrap" argument is annoying because it only applies for the parametric method
 prop_stronger = function( q,
                           M = NA,
                           t2 = NA,

@@ -1,0 +1,307 @@
+
+
+library(testthat)
+library(metafor)
+library(purrr)
+
+
+d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
+                    ci=cpos, di=cneg, data=metafor::dat.bcg)
+
+# fit random-effects model
+# note that metafor package returns on the log scale
+m = metafor::rma.uni(yi= d$yi, vi=d$vi, knha=TRUE,
+                     measure="RR", method="REML" )
+
+# pooled point estimate (RR scale)
+exp(m$b)
+
+
+######## test ########
+
+# calculate calibrated estimates manually to test
+# with a different method of estimating Mhat and t2
+meta = rma.uni( yi = d$yi,
+                vi = d$vi,
+                method = "REML")
+my.ens = as.numeric( c(meta$b) + sqrt( c(meta$tau2) / ( c(meta$tau2) + d$vi ) ) * (d$yi - c(meta$b) ) )
+
+expect_equal( my.ens,
+              calib_ests(yi = d$yi,
+                         sei = sqrt(d$vi),
+                         method = "REML") )
+
+# calculate calibrated estimates manually to test
+# default (DL) method
+meta = rma.uni( yi = d$yi,
+                   vi = d$vi,
+                   method = "DL")
+my.ens = as.numeric( c(meta$b) + sqrt( c(meta$tau2) / ( c(meta$tau2) + d$vi ) ) * (d$yi - c(meta$b) ) )
+
+expect_equal( my.ens,
+              calib_ests(yi = d$yi,
+                         sei = sqrt(d$vi) ) )
+
+
+
+######## Phat, calibrated: lower tail
+Phat = prop_stronger( q = log(0.8),
+                      M = as.numeric(m$b),
+                      t2 = m$tau2,
+                      se.M = as.numeric(m$vb),
+                      se.t2 = m$se.tau2,
+                      CI.level = 0.95,
+
+                      estimate.method = "calibrated",
+                      ci.method = "calibrated",
+
+                      dat = d,
+                      yi.name = "yi",
+                      vi.name = "vi",
+                      tail = "below")
+
+expect_equal( Phat$Est,
+              mean(my.ens < log(.8)) )
+
+######## Phat, calibrated: upper tail
+Phat = prop_stronger( q = log(.8),
+                      M = as.numeric(m$b),
+                      t2 = m$tau2,
+                      se.M = as.numeric(m$vb),
+                      se.t2 = m$se.tau2,
+                      CI.level = 0.95,
+
+                      estimate.method = "calibrated",
+                      ci.method = "calibrated",
+
+                      dat = d,
+                      yi.name = "yi",
+                      vi.name = "vi",
+                      tail = "above")
+
+expect_equal( Phat$Est,
+              mean(my.ens > log(.9)) )
+
+
+######## Phat, sign test, upper tail
+q = log(.8)
+Phat = prop_stronger( q = q,
+
+                      M = as.numeric(m$b),
+                      t2 = m$tau2,
+
+                      estimate.method = "parametric",
+                      ci.method = "sign.test",
+
+                      dat = d,
+                      yi.name = "yi",
+                      vi.name = "vi",
+                      tail = "below")
+
+# sanity check: get sign test p-value of the CI limits
+pct.vec = seq( 0, 1, 0.001 )
+
+pvals = pct.vec %>% map( function(x) pct_pval( yi = d$yi,
+                                          sei = sqrt(d$vi),
+                                          mu = q,
+                                          pct = x ) ) %>%
+  unlist # return a double-type vector instead of list
+
+
+plot(pct.vec, pvals)
+
+
+Phat.sign = prop_stronger_sign(q = q,
+                   yi = d$yi,
+                   vi = d$vi,
+                   tail = "below",
+                   return.vectors = TRUE )
+
+# Phat values for this q that are rejected at the alpha = 0.05 level
+Phat.keep = pct.vec[pvals>0.05]
+min(Phat.keep)
+max(Phat.keep)
+
+# should be close to 0.05 :)
+pvals[ pct.vec == Phat.sign$res$lo ]
+pvals[ pct.vec == Phat.sign$res$hi ]
+
+
+
+######## should give warning about parametric inference
+# Phat, sign test, upper tail
+q = -.6
+prop_stronger( q = q,
+                      M = as.numeric(m$b),
+                      t2 = m$tau2,
+                      se.M = as.numeric(m$vb),
+                      se.t2 = m$se.tau2,
+                      CI.level = 0.95,
+
+                      estimate.method = "calibrated",
+                      #ci.method = "sign.test",
+
+                      dat = d,
+                      yi.name = "yi",
+                      vi.name = "vi",
+                      tail = "above")
+
+
+############################# REPRODUCE SOME VALUES FROM APPLIED EXAMPLE #############################
+
+# Croke data from dput
+dm = structure(list(yi = c(-0.76, -0.45, -0.38, -0.05, 0, 0, 0.01,
+                           0.03, 0.03, 0.04, 0.05, 0.13, 0.13, 0.15, 0.16, 0.17, 0.19, 0.29,
+                           0.35, 0.7, 0.9, 0.98), vyi = c(0.192531023895333, 0.0283486053301809,
+                                                          0.0503975205869883, 0.00585714986160763, 0.0703899254479424,
+                                                          0.0189771655516087, 0.00843429580071499, 0.0300927344000819,
+                                                          0.0204089132955573, 0.00260317771627006, 0.00374857591142888,
+                                                          0.0218927245938312, 0.011480013728751, 0.00843429580071499, 0.00752318360002047,
+                                                          0.0043993703404964, 0.197034521344481, 0.00843429580071499, 0.0162698607266879,
+                                                          0.201590082347953, 0.03373718320286, 0.0218927245938312), study = structure(c(14L,
+                                                                                                                                        5L, 12L, 3L, 6L, 7L, 15L, 9L, 13L, 11L, 10L, 9L, 19L, 1L, 20L,
+                                                                                                                                        4L, 21L, 18L, 8L, 16L, 17L, 2L), .Label = c("Alderman 2006",
+                                                                                                                                                                                    "Awasthi 1995", "Awasthi 2000", "Awasthi 2001", "Donnen 1998",
+                                                                                                                                                                                    "Dossa 2001a", "Dossa 2001b", "Gateff 1972", "Gupta 1982", "Hall 2006",
+                                                                                                                                                                                    "Joseph 2015", "Kruger 1996", "Liu 2015", "Miguel 2004", "Ndibazza 2012",
+                                                                                                                                                                                    "Ostwald 1984", "Stephenson 1993", "Sur 2005", "Watkins 1996",
+                                                                                                                                                                                    "Willett 1979", "Wiria 2013"), class = "factor")), row.names = c(NA,
+                                                                                                                                                                                                                                                     -22L), class = "data.frame")
+
+
+q = -.2
+Phat = prop_stronger(q = q,
+              tail = "below",
+
+              estimate.method = "calibrated",
+              ci.method = "calibrated",
+              #calib.est.method = "REML",
+
+              dat = dm,
+              yi.name = "yi",
+              vi.name = "vyi")
+
+expect_equal(Phat$Est, .14, tol = 0.01)
+expect_equal(Phat$lo, 0, tol = 0.01)
+expect_equal(Phat$hi, .36, tol = 0.01)
+
+
+
+############################# REPRODUCE ONE SCENARIO FROM SIMULATION STUDY #############################
+
+# upper right corner of simulation plots, rightmost data point, exponential dist
+
+sim.study.fns = "~/Dropbox/Personal computer/Independent studies/Nonparametric Phat (NPPhat)/Linked to OSF (NPPhat)/Code (on git)/Simulation study/Simulation code/functions_RRR.R"
+source(sim.study.fns)
+
+# re-source the updated fns in case of shared names
+setwd("~/Dropbox/Personal computer/Independent studies/MetaUtility R package/MetaUtility/R")
+source("functions.R")
+
+
+library(foreach)
+library(doParallel)
+library(dplyr)
+library(boot)
+library(purrr)
+
+sim.reps = 100
+
+rs = foreach( i = 1:sim.reps, .combine=rbind ) %dopar% {
+
+  ##### Simulate Dataset #####
+  d = sim_data( k = 50,
+                mu = 0.50,
+                V = 0.25,
+                muN = 150,
+                minN = 100,
+                sd.w = 1,
+                true.effect.dist = "expo" )
+  q = 0.3465736 # from previous code because mean != median for expo
+
+  # sanity check
+  mean(d$Mi)
+  mean(d$yi)
+
+  ##### Try Each Method #####
+  m = rma.uni( yi = d$yi,
+               vi = d$vyi,
+               method = "REML" )
+
+  Phat.p = prop_stronger(q = q,
+                       tail = "above",
+
+                       M = m$b,
+                       t2 = m$tau2,
+                       se.M = m$se,
+                       se.t2 = m$se.tau2,
+
+                       estimate.method = "parametric",
+                       ci.method = "parametric",
+
+                       dat = d,
+                       yi.name = "yi",
+                       vi.name = "vyi")
+
+
+  Phat.c = prop_stronger(q = q,
+                         tail = "above",
+                         estimate.method = "calibrated",
+                         ci.method = "calibrated",
+
+                         dat = d,
+                         yi.name = "yi",
+                         vi.name = "vyi")
+
+  Phat.s = prop_stronger(q = q,
+                         tail = "above",
+                         estimate.method = "calibrated",
+                         ci.method = "sign.test",
+
+                         dat = d,
+                         yi.name = "yi",
+                         vi.name = "vyi")
+
+
+  rows = data.frame( Method = c("Parametric",
+                                "Calib",
+                                "NP sign"),
+
+                     Est = c(Phat.p$Est,
+                             Phat.c$Est,
+                             Phat.s$Est),
+
+                     Lo = c(Phat.p$lo,
+                            Phat.c$lo,
+                            Phat.s$lo),
+
+                     Hi = c(Phat.p$hi,
+                            Phat.c$hi,
+                            Phat.s$hi)
+                  )
+
+  return(rows)
+}
+
+rs$Covers = covers(truth = 0.5, lo = rs$Lo, hi = rs$Hi)
+
+agg = rs %>% group_by(Method) %>%
+  summarise_all(mean)
+agg$phatBias = agg$Est - 0.50
+View(agg)
+
+# previous results:
+# bias
+#  parametric: 0.12
+#  calibrated: 0.03
+#  sign test: 0.05
+# coverage
+#  parametric: ~40%
+#  calibrated: ~95%
+#  sign test: ~90%
+# similar
+
+# to compare to existing results
+View(res.all %>% filter( k == 50 & V == .25 & true.effect.dist == "expo"& TheoryP==.5 & minN == 100))
+
+# bm: is bias in the wrong direction?

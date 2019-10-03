@@ -12,30 +12,36 @@ prop_stronger(q, M = NA, t2 = NA, se.M = NA, se.t2 = NA,
 \arguments{
 \item{q}{True effect size that is the threshold for "scientific importance"}
 
-\item{M}{Pooled point estimate from meta-analysis}
+\item{M}{Pooled point estimate from meta-analysis (required only for parametric estimation/inference and for Shapiro p-value)}
 
-\item{t2}{Estimated heterogeneity (tau^2) from meta-analysis}
+\item{t2}{Estimated heterogeneity (tau^2) from meta-analysis (required only for parametric estimation/inference and for Shapiro p-value)}
 
-\item{se.M}{Estimated standard error of pooled point estimate from meta-analysis}
+\item{se.M}{Estimated standard error of pooled point estimate from meta-analysis (required only for parametric inference)}
 
-\item{se.t2}{Estimated standard error of tau^2 from meta-analysis}
+\item{se.t2}{Estimated standard error of tau^2 from meta-analysis (required only for parametric inference)}
 
-\item{CI.level}{Confidence level as a proportion}
+\item{CI.level}{Confidence level as a proportion (e.g., 0.95 for a 95\% confidence interval)}
 
-\item{tail}{\code{above} for the proportion of effects above \code{q}; \code{below} for
+\item{tail}{\code{"above"} for the proportion of effects above \code{q}; \code{"below"} for
 the proportion of effects below \code{q}.}
 
+\item{estimate.method}{Method for point estimation of the proportion (\code{"parametric"} or \code{"calibrated"}). See Details.}
+
+\item{ci.method}{Method for confidence interval estimation (\code{"parametric"}, \code{"calibrated"}, or \code{"sign.test"}). See Details.}
+
+\item{calib.est.method}{Method for estimating the mean and variance of the true effects when computing calibrated estimates. See Details.}
+
 \item{dat}{Dataset of point estimates (with names equal to the passed \code{yi.name}) and their variances
-(with names equal to the passed \code{vi.name}). Only required when bootstrapping.}
+(with names equal to the passed \code{vi.name}). Not required if using \code{ci.method = "parametric"} and bootstrapping is not needed.}
 
-\item{R}{Number of bootstrap iterates. Only required when bootstrapping.}
+\item{R}{Number of bootstrap or simulation iterates (depending on the methods chosen). Not required if using \code{ci.method = "parametric"} and bootstrapping is not needed.}
 
-\item{bootstrap}{If equal to \code{ifneeded}, bootstraps if estimated proportion is less than 0.15 or more than
-0.85. If equal to \code{never}, instead does not return inference in the above edge cases. Only required when bootstrapping.}
+\item{bootstrap}{Only used when \code{ci.method = "parametric"}. In that case, if \code{bootstrap = "ifneeded"}, bootstraps if estimated proportion is less than 0.15 or more than
+0.85. If equal to \code{never}, instead does not return inference in the above edge cases.}
 
-\item{yi.name}{Name of the variable in \code{dat} containing the study-level point estimates. Only required when bootstrapping.}
+\item{yi.name}{Name of the variable in \code{dat} containing the study-level point estimates. Used for bootstrapping and conducting Shapiro test.}
 
-\item{vi.name}{Name of the variable in \code{dat} containing the study-level variances. Only required when bootstrapping.}
+\item{vi.name}{Name of the variable in \code{dat} containing the study-level variances. Used for bootstrapping and conducting Shapiro test.}
 }
 \value{
 Returns a dataframe containing the point estimate for the proportion, its estimated standard error, and confidence
@@ -43,110 +49,131 @@ interval limits.
 }
 \description{
 Estimates the proportion of true (i.e., population parameter) effect sizes in a meta-analysis
-that are above or below a specified threshold of scientific importance.
+that are above or below a specified threshold of scientific importance based on the methods of Mathur & VanderWeele (2018) and Mathur & VanderWeele (under review).
 }
 \details{
-When the estimated proportion is less than 0.15 or more than 0.85, it is best to bootstrap the confidence interval
+These methods perform well only in meta-analyses with at least 10 studies; we do not recommend reporting them in smaller
+meta-analyses. By default, \code{prop_stronger} uses parametric estimation for the proportion of effects above or below the chosen threshold.
+However, it is usually preferable to use the calibrated method for both point estimation and confidence interval estimation.
+The parametric method is maintained as the default for reverse-compatibility.
+
+The parametric method assumes that the true effects are approximately normal and that the number of studies is large.
+When using the parametric method and the estimated proportion is less than 0.15 or more than 0.85, it is best to bootstrap the confidence interval
 using the bias-corrected and accelerated (BCa) method (Mathur & VanderWeele, 2018); this is the default behavior of \code{prop_stronger}.
 Sometimes BCa confidence interval estimation fails, in which case \code{prop_stronger} instead uses the percentile method,
 issuing a warning if this is the case. We use a modified "safe" version of the \code{boot} package code for bootstrapping
 such that if any bootstrap iterates fail (usually because of model estimation problems), the error message is printed but the
 bootstrap iterate is simply discarded so that confidence interval estimation can proceed.
+
+The preferred calibrated method is an extension of work by Wang et al. (2019). This method makes no assumptions about the distribution of true effects and performs well in meta-analyses with
+as few as 10 studies. Calculating the calibrated estimates involves first estimating the meta-analytic mean and variance,
+which is by default done using the moments-based Dersimonian-Laird estimator as in Wang et al. (2019). To use a different method, which will be passed
+change the argument \code{calib.est.method} based on the documentation for to \code{metafor::rma.uni}'s \code{method} argument. For inference, the calibrated method may
+fail to converge especially for small meta-analyses for which the threshold is
+distant from the mean of the true effects. In these cases, it is sometimes reasonable to use the sign test method, described below.
+
+The sign test method is an extension of work by Wang et al. (2010). This method is recommended only when BCa inference from the calibrated method fails to converge. In this case, if the relative heterogeneity I^2 is moderate
+or high (I^2 > 0.5) and the point estimates appear reasonably symmetric and unimodal, the sign test method provides reliable inference.
 }
 \examples{
-
 ##### Example 1: BCG Vaccine and Tuberculosis Meta-Analysis #####
 
 # calculate effect sizes for example dataset
 d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-                   ci=cpos, di=cneg, data=metafor::dat.bcg)
+                    ci=cpos, di=cneg, data=metafor::dat.bcg)
 
 # fit random-effects model
 # note that metafor package returns on the log scale
 m = metafor::rma.uni(yi= d$yi, vi=d$vi, knha=TRUE,
-measure="RR", method="REML" )
+                     measure="RR", method="REML" )
 
 # pooled point estimate (RR scale)
 exp(m$b)
 
-# estimate the proportion of effects stronger than RR = 0.80
-# no bootstrapping will be needed
-prop_stronger( q = log(0.8),
+# estimate the proportion of effects stronger than RR = 0.70
+# as recommended, use the calibrated approach for both point estimation and CI
+# bootstrap reps should be higher in practice (e.g., 1000)
+# here using fewer for speed
+prop_stronger( q = log(0.7),
+               tail = "below",
+               estimate.method = "calibrated",
+               ci.method = "calibrated",
+               dat = d,
+               yi.name = "yi",
+               vi.name = "vi",
+               R = 100)
+# warning goes away with more bootstrap iterates
+# no Shapiro p-value because we haven't provided the dataset and its variable names
+
+# now use the parametric approach (Mathur & VanderWeele 2018)
+# no bootstrapping will be needed for this choice of q
+prop_stronger( q = log(0.7),
                M = as.numeric(m$b),
                t2 = m$tau2,
                se.M = as.numeric(m$vb),
                se.t2 = m$se.tau2,
                CI.level = 0.95,
-              tail = "below",
-              bootstrap = "ifneeded")
+               tail = "below",
+               bootstrap = "ifneeded")
 
-\dontrun{
-# now try a more extreme threshold, q, such that the function will use bootstrapping
-# now we will need to pass the final 4 arguments as well
-prop_stronger( q = log(0.9),
-               M = as.numeric(m$b),
-              t2 = m$tau2,
-              se.M = as.numeric(m$vb),
-              se.t2 = m$se.tau2,
-              CI.level = 0.95,
-              tail = "below",
-
-              # below arguments control bootstrapping
-              # only 100 iterates for demo purposes (should be higher in practice)
-              dat = d,
-              R = 100,
-              bootstrap = "ifneeded",
-              yi.name = "yi",
-              vi.name = "vi" )
-}
 
 ##### Example 2: Meta-Analysis of Multisite Replication Studies #####
 
- # replication estimates (Fisher's z scale) and SEs
- # from moral credential example in reference #2
- r.fis = c(0.303, 0.078, 0.113, -0.055, 0.056, 0.073,
- 0.263, 0.056, 0.002, -0.106, 0.09, 0.024, 0.069, 0.074,
- 0.107, 0.01, -0.089, -0.187, 0.265, 0.076, 0.082)
+# replication estimates (Fisher's z scale) and SEs
+# from moral credential example in reference #2
+r.fis = c(0.303, 0.078, 0.113, -0.055, 0.056, 0.073,
+          0.263, 0.056, 0.002, -0.106, 0.09, 0.024, 0.069, 0.074,
+          0.107, 0.01, -0.089, -0.187, 0.265, 0.076, 0.082)
 
- r.SE = c(0.111, 0.092, 0.156, 0.106, 0.105, 0.057,
- 0.091, 0.089, 0.081, 0.1, 0.093, 0.086, 0.076,
- 0.094, 0.065, 0.087, 0.108, 0.114, 0.073, 0.105, 0.04)
+r.SE = c(0.111, 0.092, 0.156, 0.106, 0.105, 0.057,
+         0.091, 0.089, 0.081, 0.1, 0.093, 0.086, 0.076,
+         0.094, 0.065, 0.087, 0.108, 0.114, 0.073, 0.105, 0.04)
 
- d = data.frame( yi = r.fis,
-                 vi = r.SE^2 )
+d = data.frame( yi = r.fis,
+                vi = r.SE^2 )
 
- # meta-analyze the replications
- m = metafor::rma.uni( yi = r.fis, vi = r.SE^2, measure = "ZCOR" )
+# meta-analyze the replications
+m = metafor::rma.uni( yi = r.fis, vi = r.SE^2, measure = "ZCOR" )
 
- # probability of true effect above r = 0.10 = 28\%
- # convert threshold on r scale to Fisher's z
- q = r_to_z(0.10)
+# probability of true effect above r = 0.10 = 28\%
+# convert threshold on r scale to Fisher's z
+q = r_to_z(0.10)
 
- # bootstrap reps should be higher in practice (e.g., 1000)
- # here using only 100 for speed
- prop_stronger( q = q,
-                M = m$b,
-                se.M = m$se,
-                t2 = m$tau2,
-                se.t2 = m$se.tau2,
-                tail = "above",
-                dat = d,
-                R = 250 )
+# bootstrap reps should be higher in practice (e.g., 1000)
+# here using only 100 for speed
+prop_stronger( q = q,
+               tail = "above",
+               estimate.method = "calibrated",
+               ci.method = "calibrated",
+               dat = d,
+               yi.name = "yi",
+               vi.name = "vi",
+               R = 100 )
 
 
- # probability of true effect equally strong in opposite direction
- q.star = r_to_z(-0.10)
- prop_stronger( q = q.star,
-                M = m$b,
-                se.M = m$se,
-                t2 = m$tau2,
-                se.t2 = m$se.tau2,
-                tail = "below",
-                dat = d,
-                R = 250 )
+# probability of true effect equally strong in opposite direction
+q.star = r_to_z(-0.10)
+prop_stronger( q = q.star,
+               tail = "below",
+               estimate.method = "calibrated",
+               ci.method = "calibrated",
+               dat = d,
+               yi.name = "yi",
+               vi.name = "vi",
+               R = 100 )
+# BCa fails to converge here
 }
 \references{
-1. Mathur MB & VanderWeele TJ (2019). New metrics for meta-analyses of heterogeneous effects. Statistics in Medicine.
+1. Mathur MB & VanderWeele TJ (2018). New metrics for meta-analyses of heterogeneous effects. Statistics in Medicine.
 
-2. Mathur MB & VanderWeele TJ. New metrics for multisite replication projects. Under review.
+2. Mathur MB & VanderWeele TJ (under review). Robust metrics for meta-analyses of heterogeneous effects: methods and software.
+
+3. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
+of the random effects distribution in meta-analysis. Annals of Applied Statistics.
+
+4. Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
+predictive distributions: Summarizing meta‐analyses
+beyond means and confidence intervals. Research Synthesis Methods.
+
+5. Mathur MB & VanderWeele TJ (under review). New metrics for multisite replication projects.
 }

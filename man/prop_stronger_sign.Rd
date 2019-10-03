@@ -20,9 +20,8 @@ prop_stronger_sign(q, yi, vi, CI.level = 0.95, tail = NA, R = 2000,
 the proportion of effects below \code{q}.}
 
 \item{R}{Number of simulation iterates to estimate null distribution of sign test statistic}
-}
-\value{
-.vectors Should all percents and p-values from the grid search be returned?
+
+\item{return.vectors}{Should all percents and p-values from the grid search be returned?}
 }
 \description{
 Internal function not intended for user to call. Uses an extension of the sign test method of Wang et al. (2010) to estimate the proportion of true (i.e., population parameter) effect sizes in a meta-analysis

@@ -98,8 +98,8 @@ Phat = prop_stronger( q = q,
 # sanity check: get sign test p-value of the CI limits
 pct.vec = seq( 0, 1, 0.001 )
 
-pvals = pct.vec %>% map( function(x) phi( theta = d$yi,
-                                          theta.sd = sqrt(d$vi),
+pvals = pct.vec %>% map( function(x) pct_pval( yi = d$yi,
+                                          sei = sqrt(d$vi),
                                           mu = q,
                                           pct = x ) ) %>%
   unlist # return a double-type vector instead of list
@@ -121,8 +121,8 @@ max(Phat.keep)
 
 pvals[ pct.vec == .92 ]
 
-phi(theta = d$yi,
-    theta.sd = sqrt(d$vi),
+pct_pval(yi = d$yi,
+    sei = sqrt(d$vi),
     mu = q,
     pct = .025)
 
