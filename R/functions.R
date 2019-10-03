@@ -1,7 +1,4 @@
 
-# To do:
-# - Check the examples in prop_stronger since they now use calibrated method
-
 ################################ FNs: SCRAPING PUBLISHED META-ANALYSIS ################################
 
 
