@@ -25,7 +25,8 @@ the proportion of effects below \code{q}.}
 }
 \description{
 Internal function not intended for user to call. Uses an extension of the sign test method of Wang et al. (2010) to estimate the proportion of true (i.e., population parameter) effect sizes in a meta-analysis
-that are above or below a specified threshold of scientific importance.
+that are above or below a specified threshold of scientific importance. See important caveats in the Details section of the documentation for
+the function \code{prop_stronger}.
 }
 \references{
 1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles

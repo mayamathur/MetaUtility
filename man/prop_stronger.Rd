@@ -69,11 +69,11 @@ The preferred calibrated method is an extension of work by Wang et al. (2019). T
 as few as 10 studies. Calculating the calibrated estimates involves first estimating the meta-analytic mean and variance,
 which is by default done using the moments-based Dersimonian-Laird estimator as in Wang et al. (2019). To use a different method, which will be passed
 change the argument \code{calib.est.method} based on the documentation for to \code{metafor::rma.uni}'s \code{method} argument. For inference, the calibrated method may
-fail to converge especially for small meta-analyses for which the threshold is
-distant from the mean of the true effects. In these cases, it is sometimes reasonable to use the sign test method, described below.
+fail to converge especially for small meta-analyses for which the threshold is distant from the mean of the true effects.
 
-The sign test method is an extension of work by Wang et al. (2010). This method is recommended only when BCa inference from the calibrated method fails to converge. In this case, if the relative heterogeneity I^2 is moderate
-or high (I^2 > 0.5) and the point estimates appear reasonably symmetric and unimodal, the sign test method provides reliable inference.
+The sign test method is an extension of work by Wang et al. (2010). This method was included in Mathur & VanderWeele's (under review) simulation study;
+it performed adequately when there was high heterogeneity, but did not perform well with lower heterogeneity. However, in the absence of a clear criterion
+for how much heterogeneity is enough for the method to perform well, we do not in general recommend its use. Additionally, this method requires effects that are reasonably symmetric and unimodal.
 }
 \examples{
 ##### Example 1: BCG Vaccine and Tuberculosis Meta-Analysis #####
@@ -172,7 +172,7 @@ prop_stronger( q = q.star,
 of the random effects distribution in meta-analysis. Annals of Applied Statistics.
 
 4. Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
-predictive distributions: Summarizing meta‐analyses
+predictive distributions: Summarizing meta-analyses
 beyond means and confidence intervals. Research Synthesis Methods.
 
 5. Mathur MB & VanderWeele TJ (under review). New metrics for multisite replication projects.

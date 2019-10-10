@@ -331,7 +331,7 @@ tau_CI = function( meta,
 #' stats
 #' @references
 #' 1. Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
-#' predictive distributions: Summarizing meta‐analyses
+#' predictive distributions: Summarizing meta-analyses
 #' beyond means and confidence intervals. Research Synthesis Methods.
 #' @examples
 #' d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
@@ -456,7 +456,8 @@ pct_pval <- function(yi,
 #' Return sign test point estimate of proportion of effects above or below threshold.
 #'
 #' Internal function not intended for user to call. Uses an extension of the sign test method of Wang et al. (2010) to estimate the proportion of true (i.e., population parameter) effect sizes in a meta-analysis
-#' that are above or below a specified threshold of scientific importance.
+#' that are above or below a specified threshold of scientific importance. See important caveats in the Details section of the documentation for
+#' the function \code{prop_stronger}.
 #' @param q True effect size that is the threshold for "scientific importance"
 #' @param yi Study-level point estimates
 #' @param vi study-level variances
@@ -577,11 +578,12 @@ prop_stronger_sign = function(q,
 #' as few as 10 studies. Calculating the calibrated estimates involves first estimating the meta-analytic mean and variance,
 #' which is by default done using the moments-based Dersimonian-Laird estimator as in Wang et al. (2019). To use a different method, which will be passed
 #' change the argument \code{calib.est.method} based on the documentation for to \code{metafor::rma.uni}'s \code{method} argument. For inference, the calibrated method may
-#' fail to converge especially for small meta-analyses for which the threshold is
-#' distant from the mean of the true effects. In these cases, it is sometimes reasonable to use the sign test method, described below.
+#' fail to converge especially for small meta-analyses for which the threshold is distant from the mean of the true effects.
 #'
-#' The sign test method is an extension of work by Wang et al. (2010). This method is recommended only when BCa inference from the calibrated method fails to converge. In this case, if the relative heterogeneity I^2 is moderate
-#' or high (I^2 > 0.5) and the point estimates appear reasonably symmetric and unimodal, the sign test method provides reliable inference.
+#' The sign test method is an extension of work by Wang et al. (2010). This method was included in Mathur & VanderWeele's (under review) simulation study;
+#' it performed adequately when there was high heterogeneity, but did not perform well with lower heterogeneity. However, in the absence of a clear criterion
+#' for how much heterogeneity is enough for the method to perform well, we do not in general recommend its use. Additionally, this method requires effects that are reasonably symmetric and unimodal.
+#'
 #' @references
 #' 1. Mathur MB & VanderWeele TJ (2018). New metrics for meta-analyses of heterogeneous effects. Statistics in Medicine.
 #'
@@ -591,7 +593,7 @@ prop_stronger_sign = function(q,
 #' of the random effects distribution in meta-analysis. Annals of Applied Statistics.
 #'
 #' 4. Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
-#' predictive distributions: Summarizing meta‐analyses
+#' predictive distributions: Summarizing meta-analyses
 #' beyond means and confidence intervals. Research Synthesis Methods.
 #'
 #' 5. Mathur MB & VanderWeele TJ (under review). New metrics for multisite replication projects.
@@ -896,7 +898,7 @@ prop_stronger = function( q,
           c(lo, hi, SE)
 
         }, error = function(err) {
-          warning("\nHad problems computing BCa CI. \nYou could try using ci.method = 'sign.test' \nif I^2 > 0.50 and the point estimates appear unimodal and symmetric.")
+          warning("\nHad problems computing BCa CI. \nThis typically happens when the estimated proportion is close to 0 or 1 \nand the number of studies is small.")
           boot.values = c(NA, NA, NA)
         }
         )
@@ -909,7 +911,7 @@ prop_stronger = function( q,
 
   if (ci.method == "sign.test") {
 
-    warning("\n\nWarning: You are estimating a CI using the sign test method.\nThis method only works well when I^2 > 0.50 and the point estimates are\n relatively symmetric and unimodal.\nThis method does not provide a standard error estimate, only CI limits.")
+    warning("\n\nWarning: You are estimating a CI using the sign test method.\nThis method only works well with high heterogeneity and point estimates that are\n relatively symmetric and unimodal.\nThis method does not provide a standard error estimate, only CI limits.")
 
     Phat.np = prop_stronger_sign(q = q,
                                yi = dat[[yi.name]],

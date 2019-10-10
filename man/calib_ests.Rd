@@ -37,6 +37,6 @@ plot(density(d$calib))
 }
 \references{
 1. Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
-predictive distributions: Summarizing meta‐analyses
+predictive distributions: Summarizing meta-analyses
 beyond means and confidence intervals. Research Synthesis Methods.
 }
