@@ -898,7 +898,7 @@ prop_stronger = function( q,
           c(lo, hi, SE)
 
         }, error = function(err) {
-          warning("\nHad problems computing BCa CI. \nThis typically happens when the estimated proportion is close to 0 or 1 \nand the number of studies is small.")
+          warning("\nHad problems computing BCa CI. \nThis typically happens when the estimated proportion is close to 0 or 1 and the number of studies is small.\nYou could try choosing q closer to the pooled point estimate.")
           boot.values = c(NA, NA, NA)
         }
         )
@@ -906,6 +906,7 @@ prop_stronger = function( q,
         lo = boot.values[1]
         hi = boot.values[2]
         SE = boot.values[3]
+        # ~~~ BM: HERE, SAVE BOOT ESTIMATE OF BIAS
 
       } # end ci.method == "calibrated"
 
