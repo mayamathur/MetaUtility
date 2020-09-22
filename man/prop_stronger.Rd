@@ -2,15 +2,29 @@
 % Please edit documentation in R/functions.R
 \name{prop_stronger}
 \alias{prop_stronger}
-\title{Estimate proportion of true effect sizes above or below a threshold}
+\title{Estimate proportion of population effect sizes above or below a threshold}
 \usage{
-prop_stronger(q, M = NA, t2 = NA, se.M = NA, se.t2 = NA,
-  ci.level = 0.95, tail = NA, estimate.method = "calibrated",
-  ci.method = "calibrated", calib.est.method = "DL", dat = NULL,
-  R = 2000, bootstrap = "ifneeded", yi.name = "yi", vi.name = "vi")
+prop_stronger(
+  q,
+  M = NA,
+  t2 = NA,
+  se.M = NA,
+  se.t2 = NA,
+  ci.level = 0.95,
+  tail = NA,
+  estimate.method = "calibrated",
+  ci.method = "calibrated",
+  calib.est.method = "DL",
+  dat = NULL,
+  R = 2000,
+  bootstrap = "ifneeded",
+  yi.name = "yi",
+  vi.name = "vi",
+  cluster.name = NA
+)
 }
 \arguments{
-\item{q}{True effect size that is the threshold for "scientific importance"}
+\item{q}{Population effect size that is the threshold for "scientific importance"}
 
 \item{M}{Pooled point estimate from meta-analysis (required only for parametric estimation/inference and for Shapiro p-value)}
 
@@ -29,19 +43,21 @@ the proportion of effects below \code{q}.}
 
 \item{ci.method}{Method for confidence interval estimation (\code{"calibrated"}, \code{"parametric"}, or \code{"sign.test"}). See Details.}
 
-\item{calib.est.method}{Method for estimating the mean and variance of the true effects when computing calibrated estimates. See Details.}
+\item{calib.est.method}{Method for estimating the mean and variance of the population effects when computing calibrated estimates. See Details.}
 
 \item{dat}{Dataset of point estimates (with names equal to the passed \code{yi.name}) and their variances
 (with names equal to the passed \code{vi.name}). Not required if using \code{ci.method = "parametric"} and bootstrapping is not needed.}
 
 \item{R}{Number of bootstrap or simulation iterates (depending on the methods chosen). Not required if using \code{ci.method = "parametric"} and bootstrapping is not needed.}
 
-\item{bootstrap}{Only used when \code{ci.method = "parametric"}. In that case, if \code{bootstrap = "ifneeded"}, bootstraps if estimated proportion is less than 0.15 or more than
+\item{bootstrap}{Argument only used when \code{ci.method = "parametric"} (because otherwise the bootstrap is always used). In that case, if \code{bootstrap = "ifneeded"}, bootstraps if estimated proportion is less than 0.15 or more than
 0.85. If equal to \code{"never"}, instead does not return inference in the above edge cases.}
 
 \item{yi.name}{Name of the variable in \code{dat} containing the study-level point estimates. Used for bootstrapping and conducting Shapiro test.}
 
 \item{vi.name}{Name of the variable in \code{dat} containing the study-level variances. Used for bootstrapping and conducting Shapiro test.}
+
+\item{cluster.name}{Name of the variable in \code{dat} identifying clusters of studies. If left \code{NA}, assumes studies are independent (i.e., each study is its own cluster).}
 }
 \value{
 Returns a dataframe containing the point estimate for the proportion (\code{est}), its estimated standard error (\code{se}), lower and upper confidence
@@ -50,20 +66,20 @@ and the p-value for a Shapiro test for normality conducted on the standardized p
 }
 \description{
 Estimates the proportion of true (i.e., population parameter) effect sizes in a meta-analysis
-that are above or below a specified threshold of scientific importance based on the methods of Mathur & VanderWeele (2018) and Mathur & VanderWeele (2020).
+that are above or below a specified threshold of scientific importance based on the parametric methods described in Mathur & VanderWeele (2018), the nonparametric calibrated methods described in Mathur & VanderWeele (2020b), and the cluster-bootstrapping methods described in Mathur & VanderWeele (2020c).
 }
 \details{
 These methods perform well only in meta-analyses with at least 10 studies; we do not recommend reporting them in smaller
-meta-analyses. By default, \code{prop_stronger} performs estimation using a "calibrated" method (Mathur & VanderWeele, 2020) that extends work by Wang et al. (2019).
-This method makes no assumptions about the distribution of true effects and performs well in meta-analyses with
-as few as 10 studies. Calculating the calibrated estimates involves first estimating the meta-analytic mean and variance,
+meta-analyses. By default, \code{prop_stronger} performs estimation using a "calibrated" method (Mathur & VanderWeele, 2020b; 2020c) that extends work by Wang et al. (2019).
+This method makes no assumptions about the distribution of population effects, performs well in meta-analyses with
+as few as 10 studies, and can accommodate clustering of the studies (e.g., when articles contributed multiple studies on similar populations). Calculating the calibrated estimates involves first estimating the meta-analytic mean and variance,
 which, by default, is done using the moments-based Dersimonian-Laird estimator as in Wang et al. (2019). To use a different method, which will be passed
 to \code{metafor::rma.uni}, change the argument \code{calib.est.method} based on the documentation for \code{metafor::rma.uni}. For inference, the calibrated method uses bias-corrected
-and accelerated bootstrapping. The bootstrapping may fail to converge for some small meta-analyses for which the threshold is distant from the mean of the true effects.
+and accelerated bootstrapping that will account for clustered point estimates if the argument \code{cluster.name} is specified (Mathur & VanderWeele, 2020c). The bootstrapping may fail to converge for some small meta-analyses for which the threshold is distant from the mean of the population effects.
 In these cases, you can try choosing a threshold closer to the pooled point estimate of your meta-analysis.
 The mean of the bootstrap estimates of the proportion is returned as a diagnostic for potential bias in the estimated proportion.
 
-The parametric method assumes that the true effects are approximately normal and that the number of studies is large. When these conditions hold
+The parametric method assumes that the population effects are approximately normal, that the number of studies is large, and that the studies are independent. When these conditions hold
 and the proportion being estimated is not extreme (between 0.15 and 0.85), the parametric method may be more precise than the calibrated method.
 to improve precision. When using the parametric method and the estimated proportion is less than 0.15 or more than 0.85, it is best to bootstrap the confidence interval
 using the bias-corrected and accelerated (BCa) method (Mathur & VanderWeele, 2018); this is the default behavior of \code{prop_stronger}.
@@ -74,7 +90,7 @@ such that if any bootstrap iterates fail (usually because of model estimation pr
 bootstrap iterate is simply discarded so that confidence interval estimation can proceed. As above, the mean of the bootstrapped
 estimates of the proportion is returned as a diagnostic for potential bias in the estimated proportion.
 
-The sign test method (Mathur & VanderWeele, 2020) is an extension of work by Wang et al. (2010). This method was included in Mathur & VanderWeele's (2020) simulation study;
+The sign test method (Mathur & VanderWeele, 2020b) is an extension of work by Wang et al. (2010). This method was included in Mathur & VanderWeele's (2020b) simulation study;
 it performed adequately when there was high heterogeneity, but did not perform well with lower heterogeneity. However, in the absence of a clear criterion
 for how much heterogeneity is enough for the method to perform well, we do not in general recommend its use. Additionally, this method requires effects that are reasonably symmetric and unimodal.
 }
@@ -139,7 +155,7 @@ d = data.frame( yi = r.fis,
 # meta-analyze the replications
 m = metafor::rma.uni( yi = r.fis, vi = r.SE^2, measure = "ZCOR" )
 
-# probability of true effect above r = 0.10 = 28\%
+# probability of population effect above r = 0.10 = 28\%
 # convert threshold on r scale to Fisher's z
 q = r_to_z(0.10)
 
@@ -155,7 +171,7 @@ prop_stronger( q = q,
                R = 100 )
 
 
-# probability of true effect equally strong in opposite direction
+# probability of population effect equally strong in opposite direction
 q.star = r_to_z(-0.10)
 prop_stronger( q = q.star,
                tail = "below",
@@ -168,16 +184,18 @@ prop_stronger( q = q.star,
 # BCa fails to converge here
 }
 \references{
-1. Mathur MB & VanderWeele TJ (2018). New metrics for meta-analyses of heterogeneous effects. \emph{Statistics in Medicine}.
+Mathur MB & VanderWeele TJ (2018). New metrics for meta-analyses of heterogeneous effects. \emph{Statistics in Medicine}.
 
-2. Mathur MB & VanderWeele TJ (2020). Robust metrics and sensitivity analyses for meta-analyses of heterogeneous effects. \emph{Epidemiology}.
+Mathur MB & VanderWeele TJ (2020a). \emph{New statistical metrics for multisite replication projects}. \emph{Journal of the Royal Statistical Society: Series A.}
 
-3. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
+Mathur MB & VanderWeele TJ (2020b). Robust metrics and sensitivity analyses for meta-analyses of heterogeneous effects. \emph{Epidemiology}.
+
+Mathur MB & VanderWeele TJ (2020c). Assessing evidence strength in meta-regression given study characteristics: methods to estimate conditional percentages of strong population effects. Preprint available: \url{https://osf.io/bmtdq}.
+
+Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
 of the random effects distribution in meta-analysis. \emph{Annals of Applied Statistics}.
 
-4. Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
+Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
 predictive distributions: Summarizing meta-analyses
 beyond means and confidence intervals. \emph{Research Synthesis Methods}.
-
-5. Mathur MB & VanderWeele TJ (under review). \emph{New metrics for multisite replication projects}.
 }

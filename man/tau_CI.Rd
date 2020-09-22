@@ -13,7 +13,7 @@ tau_CI(meta, ci.level = 0.95)
 }
 \description{
 Returns confidence interval lower and upper limits for tau (the estimated standard deviation of
-the true effects) for a meta-analysis fit in \code{metafor::rma}.
+the population effects) for a meta-analysis fit in \code{metafor::rma}.
 }
 \examples{
 # calculate effect sizes for example dataset

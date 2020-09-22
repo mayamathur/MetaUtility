@@ -25,5 +25,5 @@ for such studies, the function applies VanderWeele (2017)'s square-root transfor
 the odds ratio to an approximate risk ratio.
 }
 \references{
-1. VanderWeele TJ (2017). On a square-root transformation of the odds ratio for a common outcome. \emph{Epidemiology}.
+VanderWeele TJ (2017). On a square-root transformation of the odds ratio for a common outcome. \emph{Epidemiology}.
 }

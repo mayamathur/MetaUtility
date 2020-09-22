@@ -4,11 +4,18 @@
 \alias{prop_stronger_sign}
 \title{Return sign test point estimate of proportion of effects above or below threshold.}
 \usage{
-prop_stronger_sign(q, yi, vi, ci.level = 0.95, tail = NA, R = 2000,
-  return.vectors = FALSE)
+prop_stronger_sign(
+  q,
+  yi,
+  vi,
+  ci.level = 0.95,
+  tail = NA,
+  R = 2000,
+  return.vectors = FALSE
+)
 }
 \arguments{
-\item{q}{True effect size that is the threshold for "scientific importance"}
+\item{q}{Population effect size that is the threshold for "scientific importance"}
 
 \item{yi}{Study-level point estimates}
 
@@ -29,6 +36,6 @@ that are above or below a specified threshold of scientific importance. See impo
 the function \code{prop_stronger}.
 }
 \references{
-1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
+Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
 of the random effects distribution in meta-analysis. \emph{Annals of Applied Statistics}.
 }

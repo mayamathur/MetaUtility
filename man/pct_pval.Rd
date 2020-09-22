@@ -19,7 +19,7 @@ pct_pval(yi, sei, mu, pct, R = 2000)
 }
 \description{
 Returns a p-value for testing the hypothesis that \code{mu} is the \code{pct}^th
-percentile of the true effect distribution based on the nonparametric sign test
+percentile of the population effect distribution based on the nonparametric sign test
 method of Wang et al. (2010). This function is also called by \code{prop_stronger}
 when using the sign test method.
 }
@@ -37,6 +37,6 @@ pct_pval( yi = d$yi,
           R = 100 )
 }
 \references{
-1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
+Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
 of the random effects distribution in meta-analysis. \emph{Annals of Applied Statistics}.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions.R
 \name{calib_ests}
 \alias{calib_ests}
-\title{Return calibrated estimates of studies' true effect sizes}
+\title{Return calibrated estimates of studies' population effect sizes}
 \usage{
 calib_ests(yi, sei, method = "DL")
 }
@@ -11,10 +11,10 @@ calib_ests(yi, sei, method = "DL")
 
 \item{sei}{Vector of study-level standard errors}
 
-\item{method}{Estimation method for mean and variance of true effects (passed to \code{metafor::rma.uni})}
+\item{method}{Estimation method for mean and variance of population effects (passed to \code{metafor::rma.uni})}
 }
 \description{
-Returns estimates of the true effect in each study based on the methods of Wang & Lee (2019).
+Returns estimates of the population effect in each study based on the methods of Wang & Lee (2019).
 Unlike the point estimates themselves, these "calibrated" estimates have been
 appropriately shrunk to correct the overdispersion that arises due to the studies' finite sample sizes.
 By default, this function uses Dersimonian-Laird moments-based estimates of the mean and variance of the true
@@ -36,7 +36,7 @@ d$trial[1:5]
 plot(density(d$calib))
 }
 \references{
-1. Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
+Wang C-C & Lee W-C (2019). A simple method to estimate prediction intervals and
 predictive distributions: Summarizing meta-analyses
 beyond means and confidence intervals. \emph{Research Synthesis Methods}.
 }
