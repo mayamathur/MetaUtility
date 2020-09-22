@@ -4,7 +4,7 @@
 \alias{prop_stronger_sign}
 \title{Return sign test point estimate of proportion of effects above or below threshold.}
 \usage{
-prop_stronger_sign(q, yi, vi, CI.level = 0.95, tail = NA, R = 2000,
+prop_stronger_sign(q, yi, vi, ci.level = 0.95, tail = NA, R = 2000,
   return.vectors = FALSE)
 }
 \arguments{
@@ -14,7 +14,7 @@ prop_stronger_sign(q, yi, vi, CI.level = 0.95, tail = NA, R = 2000,
 
 \item{vi}{study-level variances}
 
-\item{CI.level}{Confidence level as a proportion}
+\item{ci.level}{Confidence level as a proportion}
 
 \item{tail}{\code{above} for the proportion of effects above \code{q}; \code{below} for
 the proportion of effects below \code{q}.}
@@ -30,5 +30,5 @@ the function \code{prop_stronger}.
 }
 \references{
 1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
-of the random effects distribution in meta-analysis. Annals of Applied Statistics.
+of the random effects distribution in meta-analysis. \emph{Annals of Applied Statistics}.
 }

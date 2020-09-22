@@ -4,12 +4,12 @@
 \alias{tau_CI}
 \title{Return confidence interval for tau for a meta-analysis}
 \usage{
-tau_CI(meta, CI.level = 0.95)
+tau_CI(meta, ci.level = 0.95)
 }
 \arguments{
 \item{meta}{A meta-analysis object fit in \code{metafor::rma}.}
 
-\item{CI.level}{Confidence interval level as a proportion (e.g., 0.95)}
+\item{ci.level}{Confidence interval level as a proportion (e.g., 0.95)}
 }
 \description{
 Returns confidence interval lower and upper limits for tau (the estimated standard deviation of

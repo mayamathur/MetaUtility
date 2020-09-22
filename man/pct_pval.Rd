@@ -38,5 +38,5 @@ pct_pval( yi = d$yi,
 }
 \references{
 1. Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
-of the random effects distribution in meta-analysis. Annals of Applied Statistics.
+of the random effects distribution in meta-analysis. \emph{Annals of Applied Statistics}.
 }
