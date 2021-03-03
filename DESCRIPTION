@@ -10,6 +10,6 @@ Description: Contains functions to estimate the proportion of effects stronger t
     existing meta-analyses for re-analysis (scrape_meta, parse_CI_string).
 License: GPL-2
 Encoding: UTF-8
-Imports: metafor, stats, stringr, purrr, dplyr, tidyr
+Imports: metafor, stats, stringr, purrr, dplyr, tidyr, rlang
 LazyData: true
 RoxygenNote: 7.1.1

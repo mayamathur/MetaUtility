@@ -159,7 +159,7 @@ format_stat = Vectorize( function(x,
 
 
 
-#bm
+
 # convert d to log-OR
 # used for sensitivity analyses for unmeasured confounding
 # uses square-root transformation (assumes common outcome; otherwise conservative)
@@ -600,8 +600,10 @@ prop_stronger_sign = function(q,
 #' @import
 #' metafor
 #' stats
-#' dplyr
 #' tidyr
+#' @importFrom
+#' dplyr "%>%" "group_nest"
+#' @importFrom rlang .data
 #' @return
 #' Returns a dataframe containing the point estimate for the proportion (\code{est}), its estimated standard error (\code{se}), lower and upper confidence
 #' interval limits (\code{lo} and \code{hi}), and, depending on the user's specifications, the mean of the bootstrap estimates of the proportion (\code{bt.mn})
@@ -635,11 +637,11 @@ prop_stronger_sign = function(q,
 #' @references
 #' Mathur MB & VanderWeele TJ (2018). New metrics for meta-analyses of heterogeneous effects. \emph{Statistics in Medicine}.
 #'
-#' Mathur MB & VanderWeele TJ (2020a). \emph{New statistical metrics for multisite replication projects}. \emph{Journal of the Royal Statistical Society: Series A.}
+#' Mathur MB & VanderWeele TJ (2020a).New statistical metrics for multisite replication projects. \emph{Journal of the Royal Statistical Society: Series A.}
 #'
 #' Mathur MB & VanderWeele TJ (2020b). Robust metrics and sensitivity analyses for meta-analyses of heterogeneous effects. \emph{Epidemiology}.
 #'
-#' Mathur MB & VanderWeele TJ (2020c). Assessing evidence strength in meta-regression given study characteristics: methods to estimate conditional percentages of strong population effects. Preprint available: \url{https://osf.io/bmtdq}.
+#' Mathur MB & VanderWeele TJ (2020c). Meta-regression methods to characterize evidence strength using meaningful-effect percentages conditional on study characteristics. Preprint available: \url{https://osf.io/bmtdq}.
 #'
 #' Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
 #' of the random effects distribution in meta-analysis. \emph{Annals of Applied Statistics}.
