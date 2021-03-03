@@ -157,6 +157,48 @@ format_stat = Vectorize( function(x,
 ################################ FNs: EFFECT SIZE CONVERSIONS ################################
 
 
+
+
+#bm
+# convert d to log-OR
+# used for sensitivity analyses for unmeasured confounding
+# uses square-root transformation (assumes common outcome; otherwise conservative)
+# and Hasselblad/Chinn conversion
+# gets variance by delta method
+
+#' Convert Cohen's d to log risk ratio
+#'
+#' Converts Cohen's d (computed with a binary X) to a log risk ratio
+#' for use in meta-analysis. Under the assumption that Y is approximately normal, the resulting log risk ratio represents a dichotomization of Y that is near its median and otherwise will  tend to be conservative.
+#' @param d Cohen's d
+#' @param se Standard error of d
+#' @details  Internally, this function first converts d to a log odds ratio using Chinn's (2000) conversion. The resulting log odds ratio approximates the value that would be obtained if Y were dichotomized; if Y is approximately normal, the log odds ratio is approximately invariant to the choice of threshold at which Y is dichotomized (Chinn, 2000). Then, the function converts the log odds ratio to a log risk ratio using VanderWeele's (2020) square-root conversion. That conversion is conservative in that it allows for the possibility that the dichotomized Y is not rare (i.e., the point of dichotomization is not at an extreme value of Y).
+#' @references
+#' VanderWeele, TJ (2020). Optimal approximate conversions of odds ratios and hazard ratios to risk ratios. \emph{Biometrics}.
+#'
+#' Chinn S (2000). A simple method for converting an odds ratio to effect size for use in meta‐analysis. \emph{Statistics in Medicine}.
+
+#' @export
+#' @examples
+#' d_to_logRR( d = 0.5,
+#'         se = 0.21 )
+d_to_logRR = function( d, se = NA) {
+
+  # simplified the math
+  # Hasselblad conversion to log-OR followed by TVW's square-root transformation
+  #  to RR so that we can imagine dichotomizing near median
+  logRR = log( sqrt( exp( d * pi / sqrt(3) ) ) )
+
+  # delta method:
+  # derivative of log( sqrt( exp(c*d) ) ) wrt d = pi/(2*sqrt(3))
+  # so squared derivative is pi^2 / 12
+  varlogRR = ( pi^2 / 12 ) * se^2
+
+  return( data.frame(logRR, varlogRR) )
+
+}
+
+
 #' Convert Pearson's r to Cohen's d
 #'
 #' Converts Pearson's r (computed with a continuous X and Y) to Cohen's d
@@ -807,7 +849,6 @@ prop_stronger = function( q,
 
         bootCIs = lo = hi = SE = NULL
 
-        # bm
         boot.res = suppressWarnings( safe_boot( data = dat,
                                                 parallel = "multicore",
                                                 R = R,
@@ -897,8 +938,10 @@ prop_stronger = function( q,
         # works whether there is clustering or not
         # because without clustering, the clusters are 1:nrow(data)
         # prop_stronger creates a variable that is always called "cluster"
-        #utils::globalVariables(c("cluster", "data"))  # doesn't work
-        datNest = dat %>% group_nest(cluster)
+        #bm: utils::globalVariables(c("cluster", "data"))  # doesn't work
+
+
+        datNest = dat %>% group_nest(.data$cluster)
 
         boot.res = suppressWarnings( safe_boot( data = datNest,
                                                 parallel = "multicore",
@@ -907,7 +950,7 @@ prop_stronger = function( q,
 
                                                   # resample clusters with replacement
                                                   bNest = original[indices,]
-                                                  b = bNest %>% unnest(data)
+                                                  b = bNest %>% unnest(.data$data)
 
                                                   calib.b = calib_ests( yi = b[[yi.name]],
                                                                         sei = sqrt(b[[vi.name]]),
