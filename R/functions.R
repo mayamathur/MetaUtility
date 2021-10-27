@@ -180,8 +180,8 @@ format_stat = Vectorize( function(x,
 
 #' @export
 #' @examples
-#' d_to_logRR( d = 0.5,
-#'         se = 0.21 )
+#' d_to_logRR( d = c(0.5, -0.2, .1),
+#'         se = c(0.21, NA, 0.3) )
 d_to_logRR = function( d, se = NA) {
 
   # simplified the math
