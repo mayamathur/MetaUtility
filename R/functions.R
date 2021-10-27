@@ -285,14 +285,18 @@ r_to_d =
 #' @param r Pearson's correlation
 #' @export
 #' @examples
-#' # convert a Pearson correlation of -0.8 to Fisher's z
-#' r_to_z(-0.8)
-r_to_z = Vectorize( function(r) {
+#' r_to_z( c(.22, -.9, NA) )
+r_to_z = function(r) {
+  r.not.NA = r[ !is.na(r) ]
 
-  if ( abs(r) > 1 ) stop("Pearson's r cannot be greater than 1 in absolute value")
+  if ( any( abs(r.not.NA) > 1 ) ) stop("Pearson's r cannot be greater than 1 in absolute value")
 
-  .5 * ( log(1 + r) - log(1 - r) )
-}, vectorize.args = "r" )
+  # handle possible NAs in r vector
+  z = rep(NA, length(r))
+  z[ !is.na(r) ] = .5 * ( log(1 + r.not.NA) - log(1 - r.not.NA) )
+
+  return(z)
+}
 
 
 #' Convert Fisher's z to Pearson's r
@@ -301,11 +305,17 @@ r_to_z = Vectorize( function(r) {
 #' @param z Fisher's z
 #' @export
 #' @examples
-#' # convert Fisher's z of 1.1 to Pearson's r
-#' z_to_r(1.1)
-z_to_r = Vectorize( function(z) {
-  ( exp( 2 * z ) - 1 ) / ( exp( 2 * z ) + 1 )
-}, vectorize.args = "z" )
+#' z_to_r( c(1.1, NA, -0.2) )
+z_to_r = function(z) {
+  z.not.NA = z[ !is.na(z) ]
+
+  # handle possible NAs in z vector
+  r = rep(NA, length(z))
+
+  r[ !is.na(z) ] = ( exp( 2 * z.not.NA ) - 1 ) / ( exp( 2 * z.not.NA ) + 1 )
+
+  return(r)
+}
 
 
 
@@ -456,10 +466,10 @@ calib_ests = function(yi,
 #'           R = 100 )
 
 pct_pval <- function(yi,
-                sei,
-                mu,
-                pct,
-                R=2000) {
+                     sei,
+                     mu,
+                     pct,
+                     R=2000) {
 
   K<-length(yi)
 
@@ -516,22 +526,22 @@ pct_pval <- function(yi,
 #' Wang R, Tian L, Cai T, & Wei LJ (2010). Nonparametric inference procedure for percentiles
 #' of the random effects distribution in meta-analysis. \emph{Annals of Applied Statistics}.
 prop_stronger_sign = function(q,
-                            yi,
-                            vi,
-                            ci.level = 0.95,
-                            tail = NA,
-                            R = 2000,
-                            return.vectors = FALSE ) {
+                              yi,
+                              vi,
+                              ci.level = 0.95,
+                              tail = NA,
+                              R = 2000,
+                              return.vectors = FALSE ) {
 
 
   # Phat values to try
   pct.vec = seq( 0, 1, 0.001 )
 
   pvals = pct.vec %>% map( function(x) pct_pval( yi = yi,
-                                            sei = sqrt(vi),
-                                            mu = q,
-                                            pct = x,
-                                            R = R ) ) %>%
+                                                 sei = sqrt(vi),
+                                                 mu = q,
+                                                 pct = x,
+                                                 R = R ) ) %>%
     unlist # return a double-type vector instead of list
 
   # point estimate: the value of Phat.below with the largest p-value?
@@ -821,8 +831,8 @@ prop_stronger = function( q,
   if ( estimate.method == "calibrated" ) {
     # use DL method by default
     calib = calib_ests( yi = dat[[yi.name]],
-                      sei = sqrt(dat[[vi.name]]),
-                      calib.est.method )
+                        sei = sqrt(dat[[vi.name]]),
+                        calib.est.method )
 
     if ( tail == "above" ) phat = sum(calib > c(q)) / length(calib)
     if ( tail == "below" ) phat = sum(calib < c(q)) / length(calib)
@@ -928,78 +938,78 @@ prop_stronger = function( q,
 
   if ( ci.method == "calibrated") {
 
-        # more sanity checks
-        if ( is.null(dat) ) stop("Must provide dat in order to use ci.method = 'calibrated'.")
-        if ( !yi.name %in% names(dat) ) stop("dat must contain variable called yi.name.")
-        if ( !vi.name %in% names(dat) ) stop("dat must contain variable called vi.name.")
+    # more sanity checks
+    if ( is.null(dat) ) stop("Must provide dat in order to use ci.method = 'calibrated'.")
+    if ( !yi.name %in% names(dat) ) stop("dat must contain variable called yi.name.")
+    if ( !vi.name %in% names(dat) ) stop("dat must contain variable called vi.name.")
 
-        bootCIs = lo = hi = SE = NULL
+    bootCIs = lo = hi = SE = NULL
 
-        # to easily allow for cluster-bootstrapping, nest the data
-        # now has one row per cluster
-        # works whether there is clustering or not
-        # because without clustering, the clusters are 1:nrow(data)
-        # prop_stronger creates a variable that is always called "cluster"
-        #bm: utils::globalVariables(c("cluster", "data"))  # doesn't work
+    # to easily allow for cluster-bootstrapping, nest the data
+    # now has one row per cluster
+    # works whether there is clustering or not
+    # because without clustering, the clusters are 1:nrow(data)
+    # prop_stronger creates a variable that is always called "cluster"
+    #bm: utils::globalVariables(c("cluster", "data"))  # doesn't work
 
 
-        datNest = dat %>% group_nest(.data$cluster)
+    datNest = dat %>% group_nest(.data$cluster)
 
-        boot.res = suppressWarnings( safe_boot( data = datNest,
-                                                parallel = "multicore",
-                                                R = R,
-                                                statistic = function(original, indices) {
+    boot.res = suppressWarnings( safe_boot( data = datNest,
+                                            parallel = "multicore",
+                                            R = R,
+                                            statistic = function(original, indices) {
 
-                                                  # resample clusters with replacement
-                                                  bNest = original[indices,]
-                                                  b = bNest %>% unnest(.data$data)
+                                              # resample clusters with replacement
+                                              bNest = original[indices,]
+                                              b = bNest %>% unnest(.data$data)
 
-                                                  calib.b = calib_ests( yi = b[[yi.name]],
-                                                                        sei = sqrt(b[[vi.name]]),
-                                                                        calib.est.method)
+                                              calib.b = calib_ests( yi = b[[yi.name]],
+                                                                    sei = sqrt(b[[vi.name]]),
+                                                                    calib.est.method)
 
-                                                  if ( tail == "above" ) phatb = sum(calib.b > c(q)) / length(calib.b)
-                                                  if ( tail == "below" ) phatb = sum(calib.b < c(q)) / length(calib.b)
-                                                  return(phatb)
-                                                } ) )
+                                              if ( tail == "above" ) phatb = sum(calib.b > c(q)) / length(calib.b)
+                                              if ( tail == "below" ) phatb = sum(calib.b < c(q)) / length(calib.b)
+                                              return(phatb)
+                                            } ) )
 
-        # catch BCa failures (usually due to infinite w adjustment issue)
-        boot.values = tryCatch( {
+    # catch BCa failures (usually due to infinite w adjustment issue)
+    boot.values = tryCatch( {
 
-          bootCIs = boot.ci(boot.res,
-                            type="bca",
-                            conf = ci.level )
-          lo = round( bootCIs$bca[4], 2 )
-          hi = round( bootCIs$bca[5], 2 )
-          SE = sd(boot.res$t)
-          bt.mn = mean(boot.res$t)
+      bootCIs = boot.ci(boot.res,
+                        type="bca",
+                        conf = ci.level )
+      lo = round( bootCIs$bca[4], 2 )
+      hi = round( bootCIs$bca[5], 2 )
+      SE = sd(boot.res$t)
+      bt.mn = mean(boot.res$t)
 
-          c(lo, hi, SE, bt.mn)
+      c(lo, hi, SE, bt.mn)
 
-        }, error = function(err) {
-          warning("\nHad problems computing BCa CI. \nThis typically happens when the estimated proportion is close to 0 or 1 and the number of studies is small.\nYou could try choosing q closer to the pooled point estimate.")
-          boot.values = c(NA, NA, NA, NA)  # ~~~ added one more here
-        }
-        )
+    }, error = function(err) {
+      warning("\nHad problems computing BCa CI. \nThis typically happens when the estimated proportion is close to 0 or 1 and the number of studies is small.\nYou could try choosing q closer to the pooled point estimate.")
+      boot.values = c(NA, NA, NA, NA)  # ~~~ added one more here
+    }
+    )
 
-        lo = boot.values[1]
-        hi = boot.values[2]
-        SE = boot.values[3]
-        bt.mn = boot.values[4]
+    lo = boot.values[1]
+    hi = boot.values[2]
+    SE = boot.values[3]
+    bt.mn = boot.values[4]
 
-      } # end ci.method == "calibrated"
+  } # end ci.method == "calibrated"
 
   if (ci.method == "sign.test") {
 
     warning("\n\nWarning: You are estimating a CI using the sign test method.\nThis method only works well with high heterogeneity and point estimates that are\n relatively symmetric and unimodal.\nThis method does not provide a standard error estimate, only CI limits.")
 
     Phat.np = prop_stronger_sign(q = q,
-                               yi = dat[[yi.name]],
-                               vi = dat[[vi.name]],
-                               ci.level = ci.level,
-                               tail = tail,
-                               R = R,
-                               return.vectors = FALSE )
+                                 yi = dat[[yi.name]],
+                                 vi = dat[[vi.name]],
+                                 ci.level = ci.level,
+                                 tail = tail,
+                                 R = R,
+                                 return.vectors = FALSE )
 
     lo = Phat.np$lo
     hi = Phat.np$hi
@@ -1185,7 +1195,7 @@ safe_boot = function (data, statistic, R, sim = "ordinary", stype = c("i",
       if (sum(m) == 0L)
         function(r) statistic(data, f[r, ], ...)
       else function(r) statistic(data, f[r, ], pred.i[r,
-                                                      ], ...)
+      ], ...)
     }
     else if (sum(m) > 0L)
       function(r) statistic(data, i[r, ], pred.i[r, ],
