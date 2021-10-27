@@ -241,9 +241,7 @@ d_to_logRR = function( d, se = NA) {
 #'         delta = 2,
 #'         N = 300,
 #'         Ns = 30 )
-
-r_to_d =
-  function(r, sx, delta, N = NA, Ns = N, sx.known = FALSE )  {
+r_to_d = function(r, sx, delta, N = NA, Ns = N, sx.known = FALSE )  {
 
     # delta should always be positive regardless of sign of d
     delta = abs(delta)
