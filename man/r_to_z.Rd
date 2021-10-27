@@ -13,6 +13,5 @@ r_to_z(r)
 Converts Pearson's r to Fisher's z for use in meta-analysis.
 }
 \examples{
-# convert a Pearson correlation of -0.8 to Fisher's z
-r_to_z(-0.8)
+r_to_z( c(.22, -.9, NA) )
 }

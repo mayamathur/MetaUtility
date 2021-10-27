@@ -363,6 +363,39 @@ tau_CI = function( meta,
 }
 
 
+
+#' Calculate variance given confidence interval limit and point estimate
+#'
+#' Returns approximate variance (i.e., squared standard error) of point estimate given either the upper or lower limit (\code{ci.lim}) of a Wald-type confidence interval. If degrees of freedom (\code{df}) are not provided, it is assumed that the confidence interval uses a z-distribution approximation. If degrees of freedom are provided, it is assumed that the confidence interval uses a t-distribution approximation.
+#' @param est Point estimate
+#' @param ci.lim Lower or upper confidence interval limit
+#' @param ci.level Confidence interval level as a proportion (e.g., 0.95)
+#' @export
+#' @details The estimate and confidence interval must be provided on a scale such that the confidence interval is symmetric. For example, if the point estimate is a relative risk, then the estimate and confidence interval should be provided on the log-relative risk scale.
+#' @import
+#' stats
+#' @examples
+ci_to_var = Vectorize( function(est,
+                                ci.lim,
+                                ci.level = 0.95,
+                                df = NA){
+
+  if ( is.na(est) | is.na(ci.lim) ) return(NA)
+  # Z or t-stat
+  stat = abs(est - ci.lim)
+
+  alpha = 1 - ci.level
+  if ( is.na(df) ) crit = qnorm(1 - alpha/2)
+  if ( !is.na(df) ) crit = qt(p = 1 - alpha/2, df = df)
+
+  se = abs(est - ci.lim) / crit
+
+  return(se^2)
+} )
+
+
+
+
 ################################ FN: CALIBRATED ESTIMATES ################################
 
 #' Return calibrated estimates of studies' population effect sizes
