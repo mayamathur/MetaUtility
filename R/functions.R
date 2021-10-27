@@ -370,6 +370,7 @@ tau_CI = function( meta,
 #' @param est Point estimate
 #' @param ci.lim Lower or upper confidence interval limit
 #' @param ci.level Confidence interval level as a proportion (e.g., 0.95)
+#' @param df Degrees of freedom
 #' @export
 #' @details The estimate and confidence interval must be provided on a scale such that the confidence interval is symmetric. For example, if the point estimate is a relative risk, then the estimate and confidence interval should be provided on the log-relative risk scale.
 #' @import

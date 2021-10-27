@@ -12,6 +12,8 @@ ci_to_var(est, ci.lim, ci.level = 0.95, df = NA)
 \item{ci.lim}{Lower or upper confidence interval limit}
 
 \item{ci.level}{Confidence interval level as a proportion (e.g., 0.95)}
+
+\item{df}{Degrees of freedom}
 }
 \description{
 Returns approximate variance (i.e., squared standard error) of point estimate given either the upper or lower limit (\code{ci.lim}) of a Wald-type confidence interval. If degrees of freedom (\code{df}) are not provided, it is assumed that the confidence interval uses a z-distribution approximation. If degrees of freedom are provided, it is assumed that the confidence interval uses a t-distribution approximation.
