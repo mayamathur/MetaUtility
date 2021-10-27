@@ -176,7 +176,7 @@ format_stat = Vectorize( function(x,
 #' @references
 #' VanderWeele, TJ (2020). Optimal approximate conversions of odds ratios and hazard ratios to risk ratios. \emph{Biometrics}.
 #'
-#' Chinn S (2000). A simple method for converting an odds ratio to effect size for use in meta‐analysis. \emph{Statistics in Medicine}.
+#' Chinn S (2000). A simple method for converting an odds ratio to effect size for use in meta-analysis. \emph{Statistics in Medicine}.
 
 #' @export
 #' @examples
