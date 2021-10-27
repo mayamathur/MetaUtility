@@ -26,7 +26,7 @@ when using the sign test method.
 \examples{
 # calculate effect sizes for example dataset
 d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-                   ci=cpos, di=cneg, data=metafor::dat.bcg)
+                   ci=cpos, di=cneg, data=metadat::dat.bcg)
 
 # test H0: the median is -0.3
 # using only R = 100 for speed, but should be much larger (e.g., 2000) in practice

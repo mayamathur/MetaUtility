@@ -18,7 +18,7 @@ the population effects) for a meta-analysis fit in \code{metafor::rma}.
 \examples{
 # calculate effect sizes for example dataset
 d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-                   ci=cpos, di=cneg, data=metafor::dat.bcg)
+                   ci=cpos, di=cneg, data=metadat::dat.bcg)
 
 # fit random-effects model
 # note that metafor package returns on the log scale

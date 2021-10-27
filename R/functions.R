@@ -326,7 +326,7 @@ z_to_r = Vectorize( function(z) {
 #' @examples
 #' # calculate effect sizes for example dataset
 #' d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-#'                    ci=cpos, di=cneg, data=metafor::dat.bcg)
+#'                    ci=cpos, di=cneg, data=metadat::dat.bcg)
 #'
 #' # fit random-effects model
 #' # note that metafor package returns on the log scale
@@ -377,7 +377,7 @@ tau_CI = function( meta,
 #' beyond means and confidence intervals. \emph{Research Synthesis Methods}.
 #' @examples
 #' d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-#'                      ci=cpos, di=cneg, data=metafor::dat.bcg)
+#'                      ci=cpos, di=cneg, data=metadat::dat.bcg)
 #'
 #' # calculate calibrated estimates
 #' d$calib = calib_ests( yi = d$yi,
@@ -445,7 +445,7 @@ calib_ests = function(yi,
 #' @examples
 #' # calculate effect sizes for example dataset
 #' d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-#'                    ci=cpos, di=cneg, data=metafor::dat.bcg)
+#'                    ci=cpos, di=cneg, data=metadat::dat.bcg)
 #'
 #' # test H0: the median is -0.3
 #' # using only R = 100 for speed, but should be much larger (e.g., 2000) in practice
@@ -655,7 +655,7 @@ prop_stronger_sign = function(q,
 #'
 #' # calculate effect sizes for example dataset
 #' d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-#'                     ci=cpos, di=cneg, data=metafor::dat.bcg)
+#'                     ci=cpos, di=cneg, data=metadat::dat.bcg)
 #'
 #' # fit random-effects model
 #' # note that metafor package returns on the log scale

@@ -22,7 +22,7 @@ effects, as Wang & Lee (2019) recommended.
 }
 \examples{
 d = metafor::escalc(measure="RR", ai=tpos, bi=tneg,
-                     ci=cpos, di=cneg, data=metafor::dat.bcg)
+                     ci=cpos, di=cneg, data=metadat::dat.bcg)
 
 # calculate calibrated estimates
 d$calib = calib_ests( yi = d$yi,
